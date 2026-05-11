@@ -19,8 +19,8 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "TODO - Your title"
-abbrev: "TODO - Abbreviation"
+title: "MLS for IPSec Group Key Exchange"
+abbrev: "MLS-GIKE"
 category: info
 
 docname: draft-todo-yourname-protocol-latest
@@ -45,9 +45,9 @@ venue:
 
 author:
  -
-    fullname: Your Name Here
-    organization: Your Organization Here
-    email: your.email@example.com
+    fullname: Konrad Kohbrok
+    organization: Phoenix R&D
+    email: konrad@ratchet.ing
 
 normative:
 
