@@ -4,8 +4,8 @@
 
 IP Security Maintenance and Extensions                        K. Kohbrok
 Internet-Draft                                               Phoenix R&D
-Intended status: Informational                               12 May 2026
-Expires: 13 November 2026
+Intended status: Informational                               13 May 2026
+Expires: 14 November 2026
 
 
                     MLS for IPsec Group Key Exchange
@@ -13,9 +13,9 @@ Expires: 13 November 2026
 
 Abstract
 
-   This document describes an initial design for using the Messaging
-   Layer Security (MLS) protocol as the group key-management substrate
-   for Group Key Management using IKEv2 (G-IKEv2).  The intent is to
+   This document describes a profile that uses the Messaging Layer
+   Security (MLS) protocol as the group key-management substrate for
+   Group Key Management using IKEv2 (G-IKEv2).  The intent is to
    preserve the operational model of G-IKEv2, including IKEv2 transport,
    GSA policy distribution, a central GCKS, and the IPsec ESP data
    plane, while replacing GDOI-style group key distribution with an MLS
@@ -57,7 +57,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 13 November 2026.
+   This Internet-Draft will expire on 14 November 2026.
 
 Copyright Notice
 
@@ -78,7 +78,7 @@ Table of Contents
    1.  Introduction
    2.  Conventions and Definitions
    3.  MLS Concepts Used by This Design
-   4.  Scope of the Initial Version
+   4.  Scope
    5.  Design Overview
    6.  Mapping from G-IKEv2 to MLS-GIKE
    7.  Group Creation
@@ -126,13 +126,11 @@ Table of Contents
    MLS exporter.  The GCKS does not hold an MLS member leaf and
    therefore does not derive the exported traffic keys.
 
-   This is an initial design intended to explore the concepts and
-   protocol structure.  This document is descriptive and is not a
-   complete normative specification.  Several details needed for
-   interoperability are intentionally stated as design constraints or
-   open issues.  This document omits several optimizations and
-   deployment variants that can be specified after the base protocol has
-   stabilized.
+   This document is descriptive and is not a complete normative
+   specification.  Several details needed for interoperability are
+   intentionally stated as design constraints or open issues.  This
+   document leaves several optimizations and deployment variants as
+   TODOs or open questions.
 
 2.  Conventions and Definitions
 
@@ -227,9 +225,10 @@ Table of Contents
    MLS distinguishes delivery from authentication.  The MLS architecture
    describes a Delivery Service that orders and relays messages, and an
    Authentication Service that is responsible for member identities and
-   credentials.  See [RFC9750].  For the initial version of this draft,
-   the GCKS acts as DS, AS, and MLS external sender.  Future versions
-   can split these roles.
+   credentials.  See [RFC9750].  In this profile, the GCKS acts as DS,
+   AS, and MLS external sender.  OPEN QUESTION: What protocol changes
+   are required to split the DS, AS, and external-sender roles across
+   separate components?
 
    MLS exposes an exporter that derives application key material from
    the epoch's exporter_secret.  See Section 8.5 of [RFC9420].  This
@@ -237,25 +236,30 @@ Table of Contents
    material.  MLS is not used to carry IPsec packets or application data
    in this design.
 
-4.  Scope of the Initial Version
+4.  Scope
 
-   This document describes a deliberately narrow first version.  All MLS
-   handshake traffic is carried over per-member unicast IKE SAs.  There
-   is no multicast GSA_REKEY pseudo-exchange in this version.
+   This document describes a deliberately narrow profile.  All MLS
+   handshake traffic is carried over per-member unicast IKE SAs.  This
+   profile does not define a multicast GSA_REKEY pseudo-exchange.  TODO:
+   Decide whether multicast rekey support belongs in this document or in
+   a separate extension.
 
    The GCKS is the only entity authorized to propose structural
    membership changes.  Members do not propose Add or Remove operations
    for other members.  Members can refresh their own MLS contribution by
    sending an empty Commit with an UpdatePath.
 
-   New members join through Add plus Welcome.  Joining through External
-   Commit, as defined in Section 12.4.3.2 of [RFC9420], is deferred to a
-   future revision.
+   New members join through Add plus Welcome.  This profile does not
+   define joining through External Commit, as defined in
+   Section 12.4.3.2 of [RFC9420].  OPEN QUESTION: Should External Commit
+   be specified for joining, resynchronization, or both, and what GCKS
+   validation is required?
 
    All GMs are both senders and receivers.  There is no sender/receiver
-   role split in this version.  Because all GMs can send on the same
+   role split in this profile.  Because all GMs can send on the same
    group Data-Security SA, this draft keeps the Sender-ID machinery of
-   G-IKEv2 for counter-based ESP modes.
+   G-IKEv2 for counter-based ESP modes.  TODO: Define sender/receiver
+   authorization for deployments with receive-only or send-only members.
 
    The GCKS is a single instance for a group.  GCKS replication and
    failover are out of scope.
@@ -263,7 +267,9 @@ Table of Contents
    The group uses one current ESP Data-Security SA per MLS epoch for the
    relevant group traffic selectors.  The previous epoch's SA can
    overlap during rollover according to the GWP_ATD and GWP_DTD policy
-   attributes.  AH Data-Security SAs are out of scope for this version.
+   attributes.  This profile does not define AH Data-Security SAs.
+   TODO: Decide whether AH Data-Security SAs need explicit support or
+   explicit exclusion.
 
 5.  Design Overview
 
@@ -288,11 +294,10 @@ Table of Contents
    Because it has no MLS epoch secrets, it can perform public checks but
    cannot verify MLS membership MACs or confirmation tags.
 
-   A designated GM commits GCKS-authored external Proposals.  For this
-   version, the designated committer is the lowest non-blank leaf that
-   is not the leaf being removed.  The GCKS can retry with the next non-
-   blank leaf if the designated committer is unreachable or refuses to
-   commit.
+   A designated GM commits GCKS-authored external Proposals.  The
+   designated committer is the lowest non-blank leaf that is not the
+   leaf being removed.  The GCKS can retry with the next non-blank leaf
+   if the designated committer is unreachable or refuses to commit.
 
    All MLS Proposals and Commits in this profile are sent as MLS
    PublicMessages.  This lets the GCKS reconstruct the public tree from
@@ -333,11 +338,11 @@ Table of Contents
      | KD Member Key    | Retained only for GM_SENDER_ID when        |
      | Bag              | needed.                                    |
      +------------------+--------------------------------------------+
-     | Rekey SA and KEK | Removed in this version.                   |
+     | Rekey SA and KEK | Removed from MLS-GIKE key delivery.        |
      +------------------+--------------------------------------------+
      | TEK key material | Derived from the MLS exporter.             |
      +------------------+--------------------------------------------+
-     | GSA_REKEY        | Not used in this version.                  |
+     | GSA_REKEY        | Not used.                                  |
      +------------------+--------------------------------------------+
      | GSA_AUTH and     | Extended with an MLS KeyPackage and MLS    |
      | GSA_REGISTRATION | version negotiation.                       |
@@ -385,8 +390,8 @@ Table of Contents
    A Candidate GM authenticates to the GCKS using the same IKEv2
    authentication machinery used by G-IKEv2.  The request carries IDg, a
    GROUP_SENDER notification, an MLS_KEY_PACKAGE, and an optional
-   MLS_VERSION notification.  Every GM sends GROUP_SENDER in this
-   version because every GM is both a sender and a receiver.
+   MLS_VERSION notification.  Every GM sends GROUP_SENDER because this
+   profile treats every GM as both a sender and a receiver.
 
    The MLS_KEY_PACKAGE payload contains an MLS KeyPackage.  The identity
    in the KeyPackage LeafNode credential MUST be bound to the IKE
@@ -619,21 +624,21 @@ Table of Contents
    security improvement over a design in which compromise of a GCKS-held
    KEK exposes previous rekeys.
 
-   The previous statement has an important limit.  In this initial
-   version, the GCKS is also the MLS DS, AS, and external sender.  A
-   compromised GCKS can authorize an attacker-controlled KeyPackage and
-   ask an honest designated committer to add it.  Traffic after that
-   malicious Add is visible to the attacker leaf.  Splitting the AS from
-   the GCKS and defining external-sender key rotation are future work.
+   The previous statement has an important limit.  In this profile, the
+   GCKS is also the MLS DS, AS, and external sender.  A compromised GCKS
+   can authorize an attacker-controlled KeyPackage and ask an honest
+   designated committer to add it.  Traffic after that malicious Add is
+   visible to the attacker leaf.  OPEN QUESTION: How should this profile
+   split the AS from the GCKS and rotate the external-sender key?
 
    The GCKS can perform public validation of MLS handshakes but cannot
    perform all member-side MLS validation.  In particular, it cannot
    verify MLS membership MACs, confirmation tags, epoch secrets,
    exporter output, or ESP keys.  Members remain the cryptographic
    acceptance authority for MLS Commits and Welcome processing.  This
-   version does not specify recovery if the GCKS accepts a public state
-   that members later reject.  A future version needs to define repair,
-   rollback, or resynchronization behavior for that case.
+   document does not specify recovery if the GCKS accepts a public state
+   that members later reject.  OPEN QUESTION: What repair, rollback, or
+   resynchronization behavior is required for that case?
 
    The GCKS orders Commits.  Commit authors keep the resulting epoch
    tentative until the GCKS fans the ordered Commit back to them.  This
@@ -661,9 +666,10 @@ Table of Contents
    removed member cannot derive the new epoch key, but it can still know
    the previous epoch's ESP key and Sender-ID values.  If receivers keep
    accepting the old ESP SA during GWP_DTD, packets from the removed
-   member can still be accepted until the old SA is deleted.  Removal-
-   specific zero overlap, receiver-side Sender-ID filtering, and
-   explicit old-SA deletion policy are future work.
+   member can still be accepted until the old SA is deleted.  OPEN
+   QUESTION: Should removal require zero overlap, receiver-side Sender-
+   ID filtering, explicit old-SA deletion policy, or a combination of
+   these mechanisms?
 
    A member-issued path-refresh Commit MUST contain an empty proposal
    vector and a populated UpdatePath.  The GCKS rejects member-authored
@@ -672,7 +678,7 @@ Table of Contents
    the rule that only the GCKS proposes structural or policy changes.
 
    A designated committer can deny service by refusing to commit a GCKS-
-   authored Proposal.  The mitigation in this version is for the GCKS to
+   authored Proposal.  The mitigation specified here is for the GCKS to
    retry with another non-blank leaf.  More advanced committer selection
    and reputation policies are not specified in this document.
 
@@ -683,8 +689,8 @@ Table of Contents
 
 15.  IANA Considerations
 
-   This initial version names several new protocol codepoints but does
-   not assign final values.  If standardized, the draft is expected to
+   This document names several new protocol codepoints but does not
+   assign final values.  If standardized, the draft is expected to
    request new IKEv2 Exchange Type values for GIKE_MLS_AUTH,
    GIKE_MLS_REGISTRATION, GIKE_MLS_PROPOSAL, GIKE_MLS_COMMIT, and
    GIKE_MLS_WELCOME.  It is expected to request new IKEv2 Payload Type
@@ -697,20 +703,20 @@ Table of Contents
 
 16.  Open Questions
 
-   This section records issues intentionally left open for this version.
+   This section records issues intentionally left open in this document.
 
    The exact binding between IDg and the MLS group_id needs to be
    settled.  The simplest approach is to make them equal subject to MLS
    length constraints.  A derived value with a domain separator is
    another option.
 
-   The external-sender key needs a rotation procedure.  A future version
-   can use a GCKS-authored GroupContextExtensions Proposal to replace
-   the external_senders extension.
+   The external-sender key needs a rotation procedure.  OPEN QUESTION:
+   Can a GCKS-authored GroupContextExtensions Proposal replace the
+   external_senders extension for this purpose?
 
-   The designated committer policy needs review.  This version uses the
-   lowest non-blank eligible leaf because it is deterministic and easy
-   to specify.
+   The designated committer policy needs review.  The policy specified
+   above uses the lowest non-blank eligible leaf because it is
+   deterministic and easy to specify.
 
    The rejection code structure for MLS_COMMIT_REJECTED needs to be
    specified.  This could be a single Notify with a subcode or separate
