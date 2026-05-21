@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-19T00:33:43.289021+00:00",
+  "timestamp": "2026-05-21T00:34:46.564836+00:00",
   "repo": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
   "labels": [
     {
@@ -49,7 +49,24 @@
       "color": "ffffff"
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "number": 3,
+      "id": "I_kwDOSaLcns8AAAABC1DSNw",
+      "title": "Commits delivery using GSA_REKEY",
+      "url": "https://github.com/kkohbrok/draft-kohbrok-ipsecme-mls-gike/issues/3",
+      "state": "OPEN",
+      "author": "smyslov",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "For scalability reasons, it would be desirable to re-use GSA_REKEY pseudo-exchange to fan out MLS commits.",
+      "createdAt": "2026-05-20T08:56:32Z",
+      "updatedAt": "2026-05-20T08:56:32Z",
+      "closedAt": null,
+      "comments": []
+    }
+  ],
   "pulls": [
     {
       "number": 1,
@@ -76,6 +93,153 @@
       "mergeCommit": null,
       "comments": [],
       "reviews": []
+    },
+    {
+      "number": 2,
+      "id": "PR_kwDOSaLcns7c-TQD",
+      "title": "Reuse G-IKEv2 payloads",
+      "url": "https://github.com/kkohbrok/draft-kohbrok-ipsecme-mls-gike/pull/2",
+      "state": "OPEN",
+      "author": "kkohbrok",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2026-05-19T08:01:15Z",
+      "updatedAt": "2026-05-20T15:37:47Z",
+      "baseRepository": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
+      "baseRefName": "konrad/group_senders",
+      "baseRefOid": "5775c5b59b36b89d32445318c979db8d44a6ba65",
+      "headRepository": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
+      "headRefName": "konrad/fewer_payloads",
+      "headRefOid": "7f2a44c5097de760bcca268c24b70fe5d7ca55e2",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAeMXYQ",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T08:33:49Z",
+          "updatedAt": "2026-05-20T08:33:49Z",
+          "comments": [
+            {
+              "originalPosition": 57,
+              "body": "In G-IKEv2 the KD payload is only present in GCKS' messages. Here it is better to use new notification for transferring KeyPackage from GM to GCKS.",
+              "createdAt": "2026-05-20T08:33:49Z",
+              "updatedAt": "2026-05-20T08:34:30Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAeNOSQ",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T08:35:39Z",
+          "updatedAt": "2026-05-20T08:35:39Z",
+          "comments": [
+            {
+              "originalPosition": 71,
+              "body": "These can be sent in the KD payload (with new attributes)",
+              "createdAt": "2026-05-20T08:35:39Z",
+              "updatedAt": "2026-05-20T08:35:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAePumA",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T08:40:36Z",
+          "updatedAt": "2026-05-20T08:40:37Z",
+          "comments": [
+            {
+              "originalPosition": 127,
+              "body": "I still think that KD should only present in the messages from GCKS. In this case MLS objects can be transfetterd using notifications.",
+              "createdAt": "2026-05-20T08:40:37Z",
+              "updatedAt": "2026-05-20T08:40:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAeQOWw",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T08:41:42Z",
+          "updatedAt": "2026-05-20T08:41:42Z",
+          "comments": [
+            {
+              "originalPosition": 107,
+              "body": "Perhaps here a new exchange type is warranted to use. Semantically, this is not yet a rekey, this is a request to generate a commit (e.g. GSA_MLS_REQUEST_COMMIT)",
+              "createdAt": "2026-05-20T08:41:42Z",
+              "updatedAt": "2026-05-20T08:44:53Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAeWWYw",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T08:54:15Z",
+          "updatedAt": "2026-05-20T08:54:15Z",
+          "comments": [
+            {
+              "originalPosition": 281,
+              "body": "```suggestion\n`MLS_COMMIT_REJECTED` is a new Notify Message Error Type defined by this document.\n```",
+              "createdAt": "2026-05-20T08:54:15Z",
+              "updatedAt": "2026-05-20T08:54:15Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAfqYkw",
+          "commit": {
+            "abbreviatedOid": "67bcbb6"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-20T11:52:36Z",
+          "updatedAt": "2026-05-20T11:52:36Z",
+          "comments": [
+            {
+              "originalPosition": 187,
+              "body": "Why not allocate these attributes from Group Key Bag Attributes and Member Key Bag Attributes in IKEv2 IANA registry? First, this will re-use existing registries (with plenty of anallocated values), second it will slightly decrease size of these objects on the wire (by 2 bytes for each object).",
+              "createdAt": "2026-05-20T11:52:36Z",
+              "updatedAt": "2026-05-20T11:53:14Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
