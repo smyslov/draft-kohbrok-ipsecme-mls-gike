@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-21T00:34:46.564836+00:00",
+  "timestamp": "2026-05-24T00:31:57.742220+00:00",
   "repo": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
   "labels": [
     {
@@ -236,6 +236,153 @@
               "body": "Why not allocate these attributes from Group Key Bag Attributes and Member Key Bag Attributes in IKEv2 IANA registry? First, this will re-use existing registries (with plenty of anallocated values), second it will slightly decrease size of these objects on the wire (by 2 bytes for each object).",
               "createdAt": "2026-05-20T11:52:36Z",
               "updatedAt": "2026-05-20T11:53:14Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "id": "PR_kwDOSaLcns7d0adT",
+      "title": "Multicast GSA_REKEY with optional LKH protection",
+      "url": "https://github.com/kkohbrok/draft-kohbrok-ipsecme-mls-gike/pull/4",
+      "state": "OPEN",
+      "author": "kkohbrok",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Fixes #3 ",
+      "createdAt": "2026-05-21T06:32:30Z",
+      "updatedAt": "2026-05-21T14:14:12Z",
+      "baseRepository": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
+      "baseRefName": "konrad/fewer_payloads",
+      "baseRefOid": "7f2a44c5097de760bcca268c24b70fe5d7ca55e2",
+      "headRepository": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
+      "headRefName": "konrad/lkh_for_rekey_multicast",
+      "headRefOid": "3a6cd85233b5ddca2f258b278fc1b80cd5f363fd",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAog6JA",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T13:46:24Z",
+          "updatedAt": "2026-05-21T13:46:24Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "For multicast fan out using GSA_REKEY, AUTH_KEY is needed. It contains a GCKS's public key, that is provided to a GM at the time of registration, so that when multicast rekey message is received, the GM can verify its signature.\nIn addition, WRAP_KEY attributes are needed for LKH. They contain the path (a sequence of keys when each next is encrypted, or wrapped, with the previous) in the logical key tree for a GM. This path in a tree is specific for each GM (as they are leafs in the tree), so later the GCKS can craft a message that, while being received by all GMs, would not be possible to decrypt for the excluded GM.",
+              "createdAt": "2026-05-21T13:46:24Z",
+              "updatedAt": "2026-05-21T13:46:24Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAokVdg",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T13:52:46Z",
+          "updatedAt": "2026-05-21T13:52:47Z",
+          "comments": [
+            {
+              "originalPosition": 78,
+              "body": "The GCKS first rekeys the REkey SA itseld using LKH, thus leaving the excluded GM an ability to decrypt multicast messages on new Rekey SA. Then it can fan-out MLS objects installing new Data-security SA using a new Rekey SA. The excluded GM will be able to see this message, but unable to decrypt it. Just for clarification.",
+              "createdAt": "2026-05-21T13:52:47Z",
+              "updatedAt": "2026-05-21T14:09:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAol-Ow",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T13:55:31Z",
+          "updatedAt": "2026-05-21T13:55:31Z",
+          "comments": [
+            {
+              "originalPosition": 110,
+              "body": "I think this is true even if GSA_REKEY is not used :-)",
+              "createdAt": "2026-05-21T13:55:31Z",
+              "updatedAt": "2026-05-21T13:55:31Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAooF6g",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T13:59:25Z",
+          "updatedAt": "2026-05-21T13:59:26Z",
+          "comments": [
+            {
+              "originalPosition": 112,
+              "body": "AUTH_KEY and WRAP_KEY are Member Key Bag attributes. And they are needed for multicast GSA_REKEY (WRAP_KEY - in case of LKH).",
+              "createdAt": "2026-05-21T13:59:26Z",
+              "updatedAt": "2026-05-21T13:59:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAot2jw",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T14:11:01Z",
+          "updatedAt": "2026-05-21T14:11:01Z",
+          "comments": [
+            {
+              "originalPosition": 146,
+              "body": "This should be 2-staged: first rekey the Rekey SA (and exclude a GM) and then distribute the MLS objects. Thus, 2 messages must be depicted.",
+              "createdAt": "2026-05-21T14:11:01Z",
+              "updatedAt": "2026-05-21T14:11:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOSaLcns8AAAABAovarA",
+          "commit": {
+            "abbreviatedOid": "3a6cd85"
+          },
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-21T14:14:12Z",
+          "updatedAt": "2026-05-21T14:14:12Z",
+          "comments": [
+            {
+              "originalPosition": 154,
+              "body": "True, but needs clarification. The Rekey SA keys are always generated and provided exclusively by the GCKS (as well as all wrap keys for LKH). This is from G-IKEv2 and is not changed. The second part is obvious and does not depend on whether multicast rekey or inband rekey is used.",
+              "createdAt": "2026-05-21T14:14:12Z",
+              "updatedAt": "2026-05-21T14:14:12Z"
             }
           ]
         }
