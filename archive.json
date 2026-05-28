@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-24T00:31:57.742220+00:00",
+  "timestamp": "2026-05-28T00:31:09.442504+00:00",
   "repo": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
   "labels": [
     {
@@ -63,6 +63,38 @@
       "body": "For scalability reasons, it would be desirable to re-use GSA_REKEY pseudo-exchange to fan out MLS commits.",
       "createdAt": "2026-05-20T08:56:32Z",
       "updatedAt": "2026-05-20T08:56:32Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 5,
+      "id": "I_kwDOSaLcns8AAAABDZDhQQ",
+      "title": "Make only group senders responsible for creating MLS commits",
+      "url": "https://github.com/kkohbrok/draft-kohbrok-ipsecme-mls-gike/issues/5",
+      "state": "OPEN",
+      "author": "smyslov",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Currently any GM can be used by the GCKS to ask for MLS commits. I think that this should be limited to group senders only.\nRequesting commits requites a unicast IKE SA between the GCKS and a GM. RFC 9838 already proposes that in large groups with small number of senders (e.g. live broadcast) the GCKS can maintain unicast IKE SA to senders and use multicast GSA_REKEY to deliver updates to receivers. This ensures that no interruption of traffic happens if network is lossy - update to senders is reliable.\n",
+      "createdAt": "2026-05-26T08:10:49Z",
+      "updatedAt": "2026-05-26T08:10:49Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 6,
+      "id": "I_kwDOSaLcns8AAAABDZFYTQ",
+      "title": "Re-use existing G-IKEv2 registries for MLS objects",
+      "url": "https://github.com/kkohbrok/draft-kohbrok-ipsecme-mls-gike/issues/6",
+      "state": "OPEN",
+      "author": "smyslov",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Currently the draft uses the only new G-IKEv2 attribute mls_commit` object for wrapping all MLS objects. THe type of MLS object is determined by additional value MlsGikeObjectType inside this attribute. This would require creating a new IANA registry to manage these types. Instead, we can use the existing IANA registries for G-IKEv2 attributes and allocate a separate attribute for each MLS object.",
+      "createdAt": "2026-05-26T08:15:37Z",
+      "updatedAt": "2026-05-26T08:15:37Z",
       "closedAt": null,
       "comments": []
     }
