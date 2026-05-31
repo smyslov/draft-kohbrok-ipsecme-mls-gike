@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-28T00:31:09.442504+00:00",
+  "timestamp": "2026-05-31T00:34:49.354247+00:00",
   "repo": "kkohbrok/draft-kohbrok-ipsecme-mls-gike",
   "labels": [
     {
@@ -78,9 +78,17 @@
       "labels": [],
       "body": "Currently any GM can be used by the GCKS to ask for MLS commits. I think that this should be limited to group senders only.\nRequesting commits requites a unicast IKE SA between the GCKS and a GM. RFC 9838 already proposes that in large groups with small number of senders (e.g. live broadcast) the GCKS can maintain unicast IKE SA to senders and use multicast GSA_REKEY to deliver updates to receivers. This ensures that no interruption of traffic happens if network is lossy - update to senders is reliable.\n",
       "createdAt": "2026-05-26T08:10:49Z",
-      "updatedAt": "2026-05-26T08:10:49Z",
+      "updatedAt": "2026-05-29T12:08:25Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "smyslov",
+          "authorAssociation": "NONE",
+          "body": "Jus a thought - shouldn't those GMs that are not senders, act as partial MLS clients (as per draft-ietf-mls-partial)? I'm thinking on scenarios like live broadcasting, when there is a single sender and a lot of (sometimes constrained) receivers.",
+          "createdAt": "2026-05-29T12:08:25Z",
+          "updatedAt": "2026-05-29T12:08:25Z"
+        }
+      ]
     },
     {
       "number": 6,
