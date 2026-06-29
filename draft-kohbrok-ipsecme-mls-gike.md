@@ -27,6 +27,14 @@ author:
     fullname: Konrad Kohbrok
     organization: Phoenix R&D
     email: konrad@ratchet.ing
+ -
+    fullname: Raphael Robert
+    organization: Phoenix R&D
+    email: ietf@raphaelrobert.com
+ -
+    fullname: Valery Smyslov
+    organization: Elvis Plus
+    email: valery@smyslov.net
 
 normative:
   RFC7296:
