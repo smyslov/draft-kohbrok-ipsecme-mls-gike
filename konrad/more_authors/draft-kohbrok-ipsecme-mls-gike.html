@@ -6,28 +6,31 @@
 <meta content="initial-scale=1.0" name="viewport">
 <title>MLS for IPsec Group Key Exchange</title>
 <meta content="Konrad Kohbrok" name="author">
+<meta content="Raphael Robert" name="author">
+<meta content="Valery Smyslov" name="author">
 <meta content="
        This document describes a profile that uses the Messaging Layer Security (MLS) protocol as the group key-management substrate for Group Key Management using IKEv2 (G-IKEv2).
 The intent is to preserve the operational model of G-IKEv2, including IKEv2 transport, GSA policy distribution, a central GCKS, and the IPsec ESP data plane, while replacing GDOI-style group key distribution with an MLS group.
 The resulting design can be read as G-IKEv2 where MLS produces the per-epoch group secret used to key the IPsec ESP Data-Security SA. 
     " name="description">
-<meta content="xml2rfc 3.33.0" name="generator">
+<meta content="xml2rfc 3.34.0" name="generator">
 <meta content="encryption" name="keyword">
 <meta content="group key exchange" name="keyword">
 <meta content="draft-kohbrok-ipsecme-mls-gike-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.33.0
-    Python 3.12.13
-    ConfigArgParse 1.7
+  xml2rfc 3.34.0
+    Python 3.14.5
+    ConfigArgParse 1.7.5
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
-    lxml 6.0.2
-    platformdirs 4.9.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.10.0
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.7.0
+    wcwidth 0.8.1
 -->
 <link href="draft-kohbrok-ipsecme-mls-gike.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -294,16 +297,19 @@ h1, h2, h3, h4, h5, h6 {
   font-size-adjust: 0.5;
   color: var(--title-color);
 }
-h1#title {
-  font-size: 32px;
-  line-height: 40px;
-  clear: both;
-}
-h1#title, h1#rfcnum {
-  margin: 1.5em 0 0.2em;
-}
-h1#rfcnum + h1#title {
-  margin: 0.2em 0;
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
 }
 
 h1, h2, h3 {
@@ -323,10 +329,10 @@ h4, h5, h6 {
 #abstract+p {
   font-size: 18px;
   line-height: 24px;
-}
-#abstract+p code, #abstract+p samp, #abstract+p tt {
-  font-size: 16px;
-  line-height: 0;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
 }
 
 p {
@@ -337,59 +343,59 @@ p {
 div {
   margin: 0;
 }
-.alignRight.art-text {
-  background-color: var(--highlight-color);
-  border: 1px solid var(--line-color);
-  border-radius: 3px;
-  padding: 0.5em 1em 0;
-  margin-bottom: 0.5em;
-}
-.alignRight.art-text pre {
-  padding: 0;
-  width: auto;
-}
 .alignRight {
   margin: 1em 0;
-}
-.alignRight > *:first-child {
-  border: none;
-  margin: 0;
-  float: right;
-  clear: both;
-}
-.alignRight > *:nth-child(2) {
-  clear: both;
-  display: block;
-  border: none;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
 }
 svg {
   display: block;
-}
-/* font-family isn't space-separated, but =~ will have to do */
-svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
-  font-family: var(--font-mono);
-}
-.alignCenter.art-text {
-  background-color: var(--highlight-color);
-  border: 1px solid var(--line-color);
-  border-radius: 3px;
-  padding: 0.5em 1em 0;
-  margin-bottom: 0.5em;
-}
-.alignCenter.art-text pre {
-  padding: 0;
-  width: auto;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
 }
 .alignCenter {
   margin: 1em 0;
-}
-.alignCenter > *:first-child {
-  border: none;
-  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
-     support flexbox yet.
-  */
-  display: table;
-  margin: 0 auto;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
 }
 
 /* lists */
@@ -427,26 +433,25 @@ dl {
     --indent: 5ch;
     & > dt {
       min-width: calc(var(--indent) - 2ch);
+      float: none;
     }
-  }
-  &.olPercent > dt {
-    float: none;
   }
 
   dl > dd > & {
     margin-top: 0.5em;
     margin-bottom: 0;
   }
-}
-dl:not(.dlNewline) > dt {
-  float: left;
-  margin-right: 2ch;
-  min-width: 8ch;
-}
-dl > dd {
-  margin-bottom: .8em;
-  margin-left: var(--indent) !important; /* stupid element overrides */
-  min-height: 2ex;
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
 }
 :is(dl.compact, .dlCompact) > dd {
   margin-bottom: 0;
@@ -462,20 +467,22 @@ dl > dd {
 }
 
 /* links */
-a, a[href].selfRef:hover {
+a {
   text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
 }
-a[href] {
-  color: var(--link-color);
-}
-a[href].selfRef, .iref + a[href].internal {
+.iref + a[href].internal {
   color: var(--text-color);
-}
-a[href]:hover {
-  text-decoration: underline;
-}
-a[href].selfRef:hover {
-  background-color: var(--highlight-color);
 }
 a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
   white-space: nowrap;
@@ -511,9 +518,9 @@ img {
 figure {
   margin: 0.5em 0;
   padding: 0;
-}
-figure blockquote {
-  margin: 0.8em 0.4em 0.4em;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
 }
 figcaption, caption {
   font-style: italic;
@@ -523,17 +530,19 @@ figcaption, caption {
 }
 @media screen {
   /* Auto-collapse boilerplate. */
-  :is(#status-of-memo, #copyright) p {
-    margin: -2px 0;
-    max-height: 0;
-    transition: max-height 2s ease, margin 0.5s ease 0.5s;
-    overflow: hidden;
-  }
-  :is(#status-of-memo, #copyright):hover p,
-  :is(#status-of-memo, #copyright) h2:target ~ p {
-    margin: 0.5em 0;
-    max-height: 500px;
-    overflow: auto;
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
   }
   pre, svg {
     display: inline-block;
@@ -583,25 +592,17 @@ table {
   max-width: 100%;
   margin: 0 0 1em;
   border-collapse: collapse;
-}
-table.right {
-  margin-left: auto;
-}
-table.center {
-  margin-left: auto;
-  margin-right: auto;
-}
-table.left {
-  margin-right: auto;
-}
-table .text-left {
-  text-align: left;
-}
-table .text-center {
-  text-align: center;
-}
-table .text-right {
-  text-align: right;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
 }
 
 thead, tbody {
@@ -621,13 +622,6 @@ th {
 :is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
   background-color: var(--highlight-color);
 }
-table caption {
-  margin: 0;
-  padding: 3px 0 3px 1em;
-}
-table p {
-  margin: 0;
-}
 
 /* pilcrow */
 a.pilcrow {
@@ -638,18 +632,16 @@ a.pilcrow {
     color: var(--pilcrow-weak);
     &:hover { text-decoration: none; }
   }
-}
-@media not print {
-  :hover > a.pilcrow, a.pilcrow:focus {
-    opacity: 1;
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
   }
-  a.pilcrow[href]:hover {
-    color: var(--pilcrow-strong);
-    background-color: transparent;
-  }
-}
-@media print {
-  a.pilcrow {
+  @media print {
     display: none;
   }
 }
@@ -708,9 +700,9 @@ sub, sup {
   font-size: 0.9em;
   font-style: italic;
   margin-top: 2em;
-}
-.docInfo .prepared {
-  float: right;
+  & .prepared {
+    float: right;
+  }
 }
 
 /* table of contents */
@@ -800,23 +792,27 @@ hr.addr {
   max-width: calc(100% - 16px);
 }
 @media (min-width: 500px) {
-  #authors-addresses > section {
-    column-count: 2;
-    column-gap: 20px;
-  }
-  #authors-addresses > section > h2 {
-    column-span: all;
-  }
-  /* hack for break-inside: avoid-column */
-  #authors-addresses address {
-    display: inline-block;
-    break-inside: avoid-column;
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
   }
 }
 
 /* Comments */
-.rfcEditorRemove p:first-of-type {
-  font-style: italic;
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
 }
 .cref {
   background-color: rgba(249, 232, 105, 0.3);
@@ -827,19 +823,21 @@ hr.addr {
 }
 
 @media screen {
-  #toc nav {
-    font-family: var(--font-title);
-    font-weight: 360;
-    & > ul { margin-bottom: 2em; }
-    & ul {
-      margin: 0 0 0 4px;
-      & :is(p, li) {
-        margin: 2px 0;
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
       }
     }
-  }
-  #toc a.toplink {
-    float: right;
+    & a.toplink {
+      float: right;
+    }
   }
 }
 @media not screen {
@@ -860,54 +858,54 @@ hr.addr {
     margin: 0;
     border-bottom: 1px solid #ccc;
     opacity: 0.6;
-  }
-  #toc h2 {
-    margin: 0;
-    padding: 2px 0 2px 6px;
-    padding-right: 1em;
-    font-size: 18px;
-    line-height: 24px;
-    min-width: 190px;
-    text-align: right;
-    background-color: #444;
-    color: white;
-    cursor: pointer;
-    &::before { /* css hamburger */
-      float: right;
-      position: relative;
-      width: 1em;
-      height: 1px;
-      left: -164px;
-      margin: 8px 0 0 0;
-      background: white none repeat scroll 0 0;
-      box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
-      content: "";
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
     }
-  }
-  #toc nav {
-    display: none;
-    background-color: var(--background-color);
-    padding: 0.5em 1em 1em;
-    overflow: auto;
-    overscroll-behavior: contain;
-    height: calc(100vh - 48px);
-    border-left: 1px solid #ddd;
-  }
-  #toc.active {
-    opacity: 1;
-    & nav { display: block; }
-  }
-  /* Make the collapsed ToC header render white on gray also when it's a link */
-  #toc h2 a,
-  #toc h2 a:is(:link, :focus, :hover),
-  #toc a.toplink,
-  #toc a.toplink:hover {
-    color: white;
-    background-color: #444;
-    text-decoration: none;
-  }
-  #toc a.toplink {
-    margin: 2px 0.5em 0;
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
   }
 }
 
@@ -926,26 +924,26 @@ hr.addr {
     margin: 0;
     padding: 0;
     z-index: 1;
-  }
-  #toc h2 {
-    margin: 0;
-    padding: 0.25em 1em 1em 0;
-  }
-  #toc nav {
-    display: block;
-    height: calc(90vh - 84px);
-    bottom: 0;
-    padding: 0.5em 0 2em;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
   }
   img { /* future proofing */
     max-width: 100%;
     height: auto;
-  }
-  #toc a.toplink {
-    margin: 8px 0.5em 0;
   }
 }
 
@@ -961,12 +959,13 @@ hr.addr {
   #n-copyright-notice {
     border-bottom: none;
   }
-  #toc, #n-introduction {
-    page-break-before: always;
-  }
   #toc {
+    page-break-before: always;
     border-top: none;
     padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
   }
   figure, pre, .vcard {
     page-break-inside: avoid;
@@ -1028,17 +1027,19 @@ hr.addr {
 }
 
 /* SVG Trick: a prefix match works because only black and white are allowed */
-svg :is([stroke="black"], [stroke^="#000"]) {
-  stroke: var(--text-color);
-}
-svg :is([stroke="white"], [stroke^="#fff"]) {
-  stroke: var(--background-color);
-}
-svg :is([fill="black"], [fill^="#000"], :not([fill])) {
-  fill: var(--text-color);
-}
-svg :is([fill="white"], [fill^="#fff"]) {
-  fill: var(--background-color);
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
 }
 </style>
 
@@ -1048,11 +1049,11 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">MLS-GIKE</td>
-<td class="right">May 2026</td>
+<td class="right">June 2026</td>
 </tr></thead>
 <tfoot><tr>
-<td class="left">Kohbrok</td>
-<td class="center">Expires 21 November 2026</td>
+<td class="left">Kohbrok, et al.</td>
+<td class="center">Expires 31 December 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,17 +1066,25 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-kohbrok-ipsecme-mls-gike-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-05-20" class="published">20 May 2026</time>
+<time datetime="2026-06-29" class="published">29 June 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-11-21">21 November 2026</time></dd>
-<dt class="label-authors">Author:</dt>
+<dd class="expires"><time datetime="2026-12-31">31 December 2026</time></dd>
+<dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
       <div class="author-name">K. Kohbrok</div>
 <div class="org">Phoenix R&amp;D</div>
+</div>
+<div class="author">
+      <div class="author-name">R. Robert</div>
+<div class="org">Phoenix R&amp;D</div>
+</div>
+<div class="author">
+      <div class="author-name">V. Smyslov</div>
+<div class="org">Elvis Plus</div>
 </div>
 </dd>
 </dl>
@@ -1122,7 +1131,7 @@ The resulting design can be read as G-IKEv2 where MLS produces the per-epoch gro
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 21 November 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 31 December 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1188,7 +1197,7 @@ The resulting design can be read as G-IKEv2 where MLS produces the per-epoch gro
             <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-esp-key-derivation-and-roll" class="internal xref">ESP Key Derivation and Rollover</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-mls-object-carriers-and-exc" class="internal xref">MLS Object Carriers and Exchanges</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-new-payloads-and-exchanges" class="internal xref">New Payloads and Exchanges</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
             <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
@@ -1211,7 +1220,7 @@ The resulting design can be read as G-IKEv2 where MLS produces the per-epoch gro
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
-            <p id="section-toc.1-1.18.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.18.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -1234,10 +1243,7 @@ The GSA payload remains the source of IPsec policy, traffic selectors, transform
 The ESP data plane and the SPD/SAD model remain the IPsec data plane described by <span>[<a href="#RFC4301" class="cite xref">RFC4301</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">The main change is that traffic keys are no longer downloaded by the GCKS in KD Group Key Bags.
 Instead, every GM that is an MLS member derives the Data-Security SA keys for the current MLS epoch with the MLS exporter.
-The GCKS does not hold an MLS member leaf and therefore does not derive the exported traffic keys.
-The existing KD payload is still reused for GCKS-originated MLS objects and Sender-ID material.
-GM-originated MLS objects use the existing Notify payload with profile-defined notification data.
-This profile therefore does not allocate a separate IKE payload type for every MLS structure it carries.<a href="#section-1-4" class="pilcrow">¶</a></p>
+The GCKS does not hold an MLS member leaf and therefore does not derive the exported traffic keys.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">This document is descriptive and is not a complete normative specification.
 Several details needed for interoperability are intentionally stated as design constraints or open issues.
 This document leaves several optimizations and deployment variants as TODOs or open questions.<a href="#section-1-5" class="pilcrow">¶</a></p>
@@ -1366,11 +1372,10 @@ Members can refresh their own MLS contribution by sending an empty Commit with a
 <p id="section-4-3">New members join through Add plus Welcome.
 This profile does not define joining through External Commit, as defined in Section 12.4.3.2 of <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
 OPEN QUESTION: Should External Commit be specified for joining, resynchronization, or both, and what GCKS validation is required?<a href="#section-4-3" class="pilcrow">¶</a></p>
-<p id="section-4-4">MLS membership is distinct from data-plane sender authorization.
-A GM that intends to send ESP traffic on a Data-Security SA indicates that role with the <code>GROUP_SENDER</code> notification defined in Section 4.7.4 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
-A GM that does not request sender authorization can still join the MLS group and derive the epoch's Data-Security SA keys, but it is not authorized to emit ESP traffic for that SA.
-This draft keeps the Sender-ID machinery of G-IKEv2 for authorized senders using counter-based ESP modes.
-This is G-IKEv2 policy authorization and nonce-space partitioning, not per-sender traffic-key separation.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-4">All GMs are both senders and receivers.
+There is no sender/receiver role split in this profile.
+Because all GMs can send on the same group Data-Security SA, this draft keeps the Sender-ID machinery of G-IKEv2 for counter-based ESP modes.
+TODO: Define sender/receiver authorization for deployments with receive-only or send-only members.<a href="#section-4-4" class="pilcrow">¶</a></p>
 <p id="section-4-5">The GCKS is a single instance for a group.
 GCKS replication and failover are out of scope.<a href="#section-4-5" class="pilcrow">¶</a></p>
 <p id="section-4-6">The group uses one current ESP Data-Security SA per MLS epoch for the relevant group traffic selectors.
@@ -1387,9 +1392,7 @@ TODO: Decide whether AH Data-Security SAs need explicit support or explicit excl
 <p id="section-5-1">The design keeps the G-IKEv2 policy plane and replaces the key-distribution plane.
 The GSA payload defined in Section 4.4 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span> continues to describe the Data-Security SA policy, traffic selectors, transforms, Sender-ID parameters, and rollover timing.
 The KD payload defined in Section 4.5 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span> is no longer used to carry TEK or KEK key material.
-This profile reuses KD bags for two GCKS-originated purposes: KD Member Key Bags carry <code>GM_SENDER_ID</code> attributes and member-scoped MLS objects, and KD Group Key Bags carry group-scoped MLS objects associated with an epoch-bound Data-Security SA SPI.
-This use of KD carries no <code>SA_KEY</code>, <code>WRAP_KEY</code>, or <code>AUTH_KEY</code> material.
-MLS objects that flow from a GM to the GCKS use the Notify payload instead of KD.<a href="#section-5-1" class="pilcrow">¶</a></p>
+KD Member Key Bags are retained only when needed to carry <code>GM_SENDER_ID</code> attributes for counter-based ESP modes.<a href="#section-5-1" class="pilcrow">¶</a></p>
 <p id="section-5-2">The GCKS creates a per-group MLS external-sender signing key.
 The public key and credential for that signing key are installed in the MLS <code>external_senders</code> GroupContext extension.
 Members use this extension to verify that Add and Remove Proposals originated from the GCKS.<a href="#section-5-2" class="pilcrow">¶</a></p>
@@ -1444,15 +1447,11 @@ The first founder upload is the only exception to the reconstruction rule, becau
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">KD Group Key Bag</td>
-            <td class="text-left" rowspan="1" colspan="1">Retained for GCKS-to-GM group-scoped MLS objects, but not for SA key delivery.</td>
+            <td class="text-left" rowspan="1" colspan="1">Removed for SA key delivery.</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">KD Member Key Bag</td>
-            <td class="text-left" rowspan="1" colspan="1">Retained for <code>GM_SENDER_ID</code> and GCKS-to-GM member-scoped MLS objects.</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Notify payload</td>
-            <td class="text-left" rowspan="1" colspan="1">Used for MLS objects that are not KD downloads.</td>
+            <td class="text-left" rowspan="1" colspan="1">Retained only for <code>GM_SENDER_ID</code> when needed.</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Rekey SA and KEK</td>
@@ -1472,19 +1471,7 @@ The first founder upload is the only exception to the reconstruction rule, becau
             <td class="text-left" rowspan="1" colspan="1">
               <code>GSA_AUTH</code> and <code>GSA_REGISTRATION</code>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">Reused with <code>N(MLS_OBJECT)</code> in requests and KD-carried MLS objects in responses.</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>GSA_MLS_REQUEST_COMMIT</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">New GCKS-to-GM exchange asking a designated GM to commit a GCKS-authored Proposal.</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>GSA_INBAND_REKEY</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">Reused for GCKS-to-GM unicast delivery of epoch-bound GSA updates and related MLS objects.</td>
+            <td class="text-left" rowspan="1" colspan="1">Extended with an MLS KeyPackage and MLS version negotiation.</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Member exclusion</td>
@@ -1511,12 +1498,12 @@ The first founder upload is the only exception to the reconstruction rule, becau
 See Section 11 of <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
 Because the GCKS is not an MLS member, the first GM to join a configured but empty G-IKEv2 group becomes the MLS founder.<a href="#section-7-1" class="pilcrow">¶</a></p>
 <p id="section-7-2">When the GCKS is configured for a new group, it generates a per-group MLS external-sender signing key pair.
-The public key and credential for that pair are placed in an <code>mls_group_template</code> object carried in KD.
+The public key and credential for that pair are placed in an <code>MLS_GROUP_TEMPLATE</code>.
 The template also carries the MLS cipher suite, the MLS group identifier, required capabilities, and any other GroupContext extensions required by GCKS policy.<a href="#section-7-2" class="pilcrow">¶</a></p>
 <p id="section-7-3">The first Candidate GM authenticates to the GCKS with the MLS-GIKE variant of <code>GSA_AUTH</code>.
-The GCKS returns the normal GSA policy and the <code>mls_group_template</code> object.
+The GCKS returns the normal GSA policy and the <code>MLS_GROUP_TEMPLATE</code>.
 The founder creates a one-member MLS group using the template values.
-The founder then uses <code>GIKE_MLS_UPLOAD</code> to send <code>N(MLS_OBJECT)</code> notifications carrying an <code>mls_group_info</code> object containing a full <code>GroupInfo</code> and an <code>mls_ratchet_tree</code> object containing the initial public ratchet tree to the GCKS.<a href="#section-7-3" class="pilcrow">¶</a></p>
+The founder then uploads a full <code>GroupInfo</code> and the initial public ratchet tree to the GCKS.<a href="#section-7-3" class="pilcrow">¶</a></p>
 <p id="section-7-4">The GCKS verifies that the founder's GroupContext matches the template, verifies that the uploaded tree hash matches the GroupInfo tree hash, and verifies the founder's GroupInfo signature against the founder's LeafNode signing key.
 The GCKS cannot verify the MLS confirmation tag.
 The uploaded GroupInfo becomes the GCKS baseline for public tracked state.<a href="#section-7-4" class="pilcrow">¶</a></p>
@@ -1528,18 +1515,17 @@ The uploaded GroupInfo becomes the GCKS baseline for public tracked state.<a hre
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-registration" class="section-name selfRef">Registration</a>
       </h2>
 <p id="section-8-1">A Candidate GM authenticates to the GCKS using the same IKEv2 authentication machinery used by G-IKEv2.
-The request carries <code>IDg</code>, an <code>N(MLS_OBJECT)</code> notification containing an <code>mls_key_package</code> object, and a <code>GROUP_SENDER</code> notification only if the GM intends to send Data-Security SA traffic.<a href="#section-8-1" class="pilcrow">¶</a></p>
-<p id="section-8-2">The <code>mls_key_package</code> object contains an MLS KeyPackage.
-The KeyPackage identifies the MLS protocol version and cipher suite supported for this join.
-If the GCKS cannot accept those MLS parameters, it rejects the exchange with <code>NO_PROPOSAL_CHOSEN</code>.
+The request carries <code>IDg</code>, a <code>GROUP_SENDER</code> notification, an <code>MLS_KEY_PACKAGE</code>, and an optional <code>MLS_VERSION</code> notification.
+Every GM sends <code>GROUP_SENDER</code> because this profile treats every GM as both a sender and a receiver.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">The <code>MLS_KEY_PACKAGE</code> payload contains an MLS KeyPackage.
 The identity in the KeyPackage LeafNode credential <span class="bcp14">MUST</span> be bound to the IKE identity authenticated in the exchange.
 For example, a basic credential identity can equal <code>IDi</code>, or an X.509 credential can contain a subjectAltName matching <code>IDi</code>.<a href="#section-8-2" class="pilcrow">¶</a></p>
 <p id="section-8-3">The GCKS response carries a GSA payload that describes policy but is not installable as a Data-Security SA.
-If the GM requested sender authorization and the Data-Security SA uses a counter-based ESP mode, the response also carries a KD Member Key Bag containing one or more <code>GM_SENDER_ID</code> attributes as specified by Section 4.5.3.3 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
+If the Data-Security SA uses a counter-based ESP mode, the response also carries a KD Member Key Bag containing one or more <code>GM_SENDER_ID</code> attributes as specified by Section 4.5.3.3 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
 The response does not carry MLS group state unless the group is empty and the candidate is becoming the founder.
 The candidate is not yet in an MLS epoch from which it can derive traffic keys.
 Any SPI carried in that GSA is tentative until the GSA for the accepted MLS epoch is delivered.
-The installable GSA is sent later with <code>mls_welcome</code> to the candidate and with the ordered <code>mls_commit</code> to existing members.
+The installable GSA is sent later with <code>MLS_WELCOME</code> to the candidate and with the ordered <code>MLS_COMMIT</code> to existing members.
 If the installable GSA differs from the registration GSA, the candidate validates it again during Welcome processing.
 This duplicate GSA transmission gives the candidate an early policy check while keeping SAD installation tied to the accepted MLS epoch.<a href="#section-8-3" class="pilcrow">¶</a></p>
 </section>
@@ -1555,41 +1541,28 @@ The GCKS drives the join by sending an external Add Proposal to a designated com
 <figure id="figure-1">
         <div id="section-9-2.1">
           <div class="alignLeft art-svg artwork" id="section-9-2.1.1">
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="496" width="656" viewBox="0 0 656 496" class="diagram" text-anchor="middle" font-family="monospace" font-size="13px" stroke-linecap="round">
-              <path d="M 40,48 L 40,480" fill="none" stroke="black"></path>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="352" width="496" viewBox="0 0 496 352" class="diagram" text-anchor="middle" font-family="monospace" font-size="13px" stroke-linecap="round">
+              <path d="M 40,48 L 40,336" fill="none" stroke="black"></path>
               <path d="M 152,80 L 152,96" fill="none" stroke="black"></path>
-              <path d="M 152,128 L 152,368" fill="none" stroke="black"></path>
-              <path d="M 152,400 L 152,480" fill="none" stroke="black"></path>
-              <path d="M 296,72 L 296,144" fill="none" stroke="black"></path>
-              <path d="M 296,168 L 296,192" fill="none" stroke="black"></path>
+              <path d="M 152,128 L 152,240" fill="none" stroke="black"></path>
+              <path d="M 152,272 L 152,336" fill="none" stroke="black"></path>
+              <path d="M 296,48 L 296,192" fill="none" stroke="black"></path>
               <path d="M 296,224 L 296,240" fill="none" stroke="black"></path>
-              <path d="M 296,304 L 296,320" fill="none" stroke="black"></path>
-              <path d="M 296,352 L 296,368" fill="none" stroke="black"></path>
-              <path d="M 296,400 L 296,416" fill="none" stroke="black"></path>
-              <path d="M 504,256 L 504,264" fill="none" stroke="black"></path>
-              <path d="M 600,256 L 600,272" fill="none" stroke="black"></path>
-              <path d="M 600,432 L 600,448" fill="none" stroke="black"></path>
-              <path d="M 608,48 L 608,192" fill="none" stroke="black"></path>
-              <path d="M 608,224 L 608,240" fill="none" stroke="black"></path>
-              <path d="M 608,288 L 608,320" fill="none" stroke="black"></path>
-              <path d="M 608,352 L 608,416" fill="none" stroke="black"></path>
-              <path d="M 608,464 L 608,480" fill="none" stroke="black"></path>
+              <path d="M 296,272 L 296,288" fill="none" stroke="black"></path>
+              <path d="M 448,48 L 448,288" fill="none" stroke="black"></path>
+              <path d="M 448,320 L 448,336" fill="none" stroke="black"></path>
               <path d="M 40,80 L 144,80" fill="none" stroke="black"></path>
               <path d="M 48,128 L 152,128" fill="none" stroke="black"></path>
               <path d="M 152,176 L 288,176" fill="none" stroke="black"></path>
               <path d="M 160,224 L 296,224" fill="none" stroke="black"></path>
-              <path d="M 160,304 L 296,304" fill="none" stroke="black"></path>
-              <path d="M 152,352 L 288,352" fill="none" stroke="black"></path>
-              <path d="M 48,400 L 152,400" fill="none" stroke="black"></path>
-              <path d="M 152,464 L 600,464" fill="none" stroke="black"></path>
+              <path d="M 48,272 L 152,272" fill="none" stroke="black"></path>
+              <path d="M 152,320 L 440,320" fill="none" stroke="black"></path>
               <path d="M 136,112 C 144.83064,112 152,119.16936 152,128" fill="none" stroke="black"></path>
-              <polygon class="arrowhead" points="608,464 596,458.4 596,469.6" fill="black" transform="rotate(0,600,464)"></polygon>
-              <polygon class="arrowhead" points="296,352 284,346.4 284,357.6" fill="black" transform="rotate(0,288,352)"></polygon>
+              <polygon class="arrowhead" points="448,320 436,314.4 436,325.6" fill="black" transform="rotate(0,440,320)"></polygon>
               <polygon class="arrowhead" points="296,176 284,170.4 284,181.6" fill="black" transform="rotate(0,288,176)"></polygon>
-              <polygon class="arrowhead" points="168,304 156,298.4 156,309.6" fill="black" transform="rotate(180,160,304)"></polygon>
               <polygon class="arrowhead" points="168,224 156,218.4 156,229.6" fill="black" transform="rotate(180,160,224)"></polygon>
               <polygon class="arrowhead" points="152,80 140,74.4 140,85.6" fill="black" transform="rotate(0,144,80)"></polygon>
-              <polygon class="arrowhead" points="56,400 44,394.4 44,405.6" fill="black" transform="rotate(180,48,400)"></polygon>
+              <polygon class="arrowhead" points="56,272 44,266.4 44,277.6" fill="black" transform="rotate(180,48,272)"></polygon>
               <polygon class="arrowhead" points="56,128 44,122.4 44,133.6" fill="black" transform="rotate(180,48,128)"></polygon>
               <g class="text">
                 <text x="40" y="36">Candidate</text>
@@ -1597,42 +1570,26 @@ The GCKS drives the join by sending an external Add Proposal to a designated com
                 <text x="276" y="36">Designated</text>
                 <text x="332" y="36">GM</text>
                 <text x="352" y="36">D</text>
-                <text x="588" y="36">Existing</text>
-                <text x="640" y="36">GMs</text>
+                <text x="428" y="36">Existing</text>
+                <text x="480" y="36">GMs</text>
                 <text x="152" y="52">|</text>
-                <text x="296" y="52">|</text>
-                <text x="84" y="68">GSA_AUTH</text>
-                <text x="180" y="68">{N(MLS_OBJECT:</text>
-                <text x="312" y="68">mls_key_package)}</text>
+                <text x="104" y="68">GIKE_MLS_AUTH</text>
+                <text x="212" y="68">{KeyPackage}</text>
                 <text x="92" y="116">GSA(policy</text>
                 <text x="188" y="116">optional</text>
                 <text x="236" y="116">KD</text>
-                <text x="252" y="164">GSA_MLS_REQUEST_COMMIT</text>
-                <text x="404" y="164">{N(MLS_OBJECT:</text>
-                <text x="524" y="164">mls_proposal)}</text>
-                <text x="188" y="212">&lt;empty</text>
-                <text x="256" y="212">response&gt;</text>
-                <text x="600" y="212">|</text>
-                <text x="224" y="260">GIKE_MLS_UPLOAD</text>
-                <text x="348" y="260">{N(MLS_OBJECT:</text>
-                <text x="456" y="260">mls_commit)</text>
-                <text x="352" y="276">N(MLS_OBJECT:</text>
-                <text x="464" y="276">mls_welcome),</text>
-                <text x="352" y="292">N(MLS_OBJECT:</text>
-                <text x="508" y="292">mls_partial_group_info)}</text>
-                <text x="188" y="340">&lt;empty</text>
-                <text x="228" y="340">or</text>
-                <text x="268" y="340">error&gt;</text>
-                <text x="600" y="340">|</text>
-                <text x="116" y="388">GSA_INBAND_REKEY</text>
-                <text x="236" y="388">{GSA(epoch),</text>
-                <text x="352" y="388">KD(mls_welcome,</text>
-                <text x="492" y="388">mls_ratchet_tree)}</text>
-                <text x="228" y="436">GSA_INBAND_REKEY</text>
-                <text x="348" y="436">{GSA(epoch),</text>
-                <text x="468" y="436">KD(mls_proposal,</text>
-                <text x="364" y="452">mls_commit)}</text>
-                <text x="296" y="484">|</text>
+                <text x="212" y="164">MLS_PROPOSAL</text>
+                <text x="208" y="212">MLS_COMMIT,</text>
+                <text x="308" y="212">MLS_WELCOME,</text>
+                <text x="376" y="212">PGI</text>
+                <text x="96" y="260">GSA(epoch),</text>
+                <text x="196" y="260">MLS_WELCOME,</text>
+                <text x="316" y="260">MLS_RATCHET_TREE</text>
+                <text x="208" y="308">GSA(epoch),</text>
+                <text x="312" y="308">MLS_PROPOSAL,</text>
+                <text x="412" y="308">MLS_COMMIT</text>
+                <text x="464" y="308">|</text>
+                <text x="296" y="340">|</text>
               </g>
             </svg><a href="#section-9-2.1.1" class="pilcrow">¶</a>
 </div>
@@ -1642,13 +1599,11 @@ The GCKS drives the join by sending an external Add Proposal to a designated com
         </figcaption></figure>
 </div>
 <p id="section-9-3">The GCKS signs the Add Proposal with its MLS external-sender key.
-The Proposal is carried in <code>GSA_MLS_REQUEST_COMMIT</code>.
 The designated committer verifies the Proposal using the <code>external_senders</code> extension in its current MLS group state.
-It creates a Commit that references the Proposal, includes an UpdatePath, creates a Welcome for the candidate, signs a GroupInfo for the new epoch without a <code>ratchet_tree</code> extension, and uploads the Commit, Welcome, and PartialGroupInfo to the GCKS as <code>N(MLS_OBJECT)</code> notifications in <code>GIKE_MLS_UPLOAD</code>.<a href="#section-9-3" class="pilcrow">¶</a></p>
+It creates a Commit that references the Proposal, includes an UpdatePath, creates a Welcome for the candidate, signs a GroupInfo for the new epoch without a <code>ratchet_tree</code> extension, and uploads the Commit, Welcome, and PartialGroupInfo to the GCKS.<a href="#section-9-3" class="pilcrow">¶</a></p>
 <p id="section-9-4">The designated committer treats the new epoch as tentative until the GCKS orders the Commit.
 If the GCKS rejects the Commit, the committer discards the tentative epoch.
-If the GCKS accepts it, the GCKS allocates a fresh Data-Security SA SPI, stores the public state, sends the Welcome, GSA, and GCKS-tracked ratchet tree to the candidate using <code>GSA_INBAND_REKEY</code>, and fans the GSA, Proposal, and Commit to existing GMs including the committer using <code>GSA_INBAND_REKEY</code>.
-The Welcome, ratchet tree, Proposal, and Commit are carried as MLS objects inside KD.
+If the GCKS accepts it, the GCKS allocates a fresh Data-Security SA SPI, stores the public state, sends the Welcome, GSA, and GCKS-tracked ratchet tree to the candidate, and fans the GSA, Proposal, and Commit to existing GMs including the committer.
 The GSA sent at this point is the GSA that GMs use for SAD installation after MLS acceptance.<a href="#section-9-4" class="pilcrow">¶</a></p>
 <p id="section-9-5">The Proposal is included in the fan-out because the Commit references the Proposal by hash.
 Receivers need the referenced Proposal object in order to validate and apply the Commit.
@@ -1665,11 +1620,10 @@ It then derives the ESP keys for the new Data-Security SA.<a href="#section-9-6"
       </h2>
 <p id="section-10-1">The GCKS removes a member by sending an external Remove Proposal to a designated committer.
 The designated committer is the lowest non-blank leaf that is not the leaf being removed.
-The Proposal is carried in <code>GSA_MLS_REQUEST_COMMIT</code>.
-The designated committer creates a Commit that references the Remove Proposal and uploads the Commit plus PartialGroupInfo to the GCKS as <code>N(MLS_OBJECT)</code> notifications in <code>GIKE_MLS_UPLOAD</code>.<a href="#section-10-1" class="pilcrow">¶</a></p>
-<p id="section-10-2">If the GCKS accepts the public state transition, it allocates a fresh Data-Security SA SPI and fans <code>GSA</code> plus KD-carried <code>mls_proposal</code> and <code>mls_commit</code> objects to the remaining GMs using <code>GSA_INBAND_REKEY</code>.
+The designated committer creates a Commit that references the Remove Proposal and returns the Commit plus PartialGroupInfo to the GCKS.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">If the GCKS accepts the public state transition, it allocates a fresh Data-Security SA SPI and fans <code>GSA</code>, <code>MLS_PROPOSAL</code>, and <code>MLS_COMMIT</code> to the remaining GMs.
 The removed GM does not receive the fresh GSA.
-If the removed GM's IKE SA is still available, the GCKS sends the <code>mls_proposal</code> and <code>mls_commit</code> objects without the fresh GSA to the removed GM so it has an authenticated indication that it has been removed.
+If the removed GM's IKE SA is still available, the GCKS sends the <code>MLS_PROPOSAL</code> and <code>MLS_COMMIT</code> without the fresh GSA to the removed GM so it has an authenticated indication that it has been removed.
 The removed GM can verify the Remove proposal and Commit structure but cannot derive the new epoch.
 If that delivery is not possible, the GCKS needs another authenticated indication, such as an IKE Delete or Notify, before it accepts further group traffic from that GM.
 The GCKS then tears down the IKE SA to the removed GM if appropriate.<a href="#section-10-2" class="pilcrow">¶</a></p>
@@ -1677,7 +1631,7 @@ The GCKS then tears down the IKE SA to the removed GM if appropriate.<a href="#s
 The MLS Remove Commit creates the new epoch, and the removed member cannot compute the new epoch secret.
 The removed member still knows the previous epoch's ESP key and any Sender-ID values it was assigned.
 While remaining members continue to accept packets protected under the previous Data-Security SA during the GWP_DTD overlap, there is a residual acceptance window for packets from the removed member.
-This profile identifies that rollover window.
+This version identifies that rollover window.
 It does not specify tighter exclusion behavior.<a href="#section-10-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1689,8 +1643,8 @@ It does not specify tighter exclusion behavior.<a href="#section-10-3" class="pi
 <p id="section-11-1">A GM can refresh its MLS contribution by creating an empty Commit with an UpdatePath.
 This is the MLS mechanism used here for member-initiated post-compromise recovery.
 The Commit contains no Proposals.<a href="#section-11-1" class="pilcrow">¶</a></p>
-<p id="section-11-2">The GM sends the Commit and PartialGroupInfo to the GCKS using <code>GIKE_MLS_UPLOAD</code> with <code>N(MLS_OBJECT)</code> notifications.
-If the Commit's epoch matches the GCKS current epoch, the GCKS orders it, allocates a fresh Data-Security SA SPI, and fans <code>GSA</code> plus a KD-carried <code>mls_commit</code> object to every GM including the author using <code>GSA_INBAND_REKEY</code>.
+<p id="section-11-2">The GM sends the Commit and PartialGroupInfo to the GCKS.
+If the Commit's epoch matches the GCKS current epoch, the GCKS orders it, allocates a fresh Data-Security SA SPI, and fans <code>GSA</code> plus <code>MLS_COMMIT</code> to every GM including the author.
 The author applies its own Commit only when it receives the GCKS-ordered copy.<a href="#section-11-2" class="pilcrow">¶</a></p>
 <p id="section-11-3">If another Commit has already been accepted for that epoch, the GCKS rejects the later Commit with <code>MLS_COMMIT_REJECTED</code> and a stale-epoch indication.
 The member then processes the winning Commit through normal fan-out and can retry the refresh in the new epoch.<a href="#section-11-3" class="pilcrow">¶</a></p>
@@ -1721,158 +1675,42 @@ This is necessary because two exporter outputs can be valid during GWP_ATD and G
 Receivers need the SPI to distinguish packets protected with the old epoch key from packets protected with the new epoch key.<a href="#section-12-6" class="pilcrow">¶</a></p>
 <p id="section-12-7">For counter-based ESP modes, this draft inherits the Sender-ID rules from Section 2.5 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
 The GCKS includes <code>GWP_SENDER_ID_BITS</code> when required by Section 4.4.3.1.2 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
-A GM authorized as a receiver installs the Data-Security SA inbound.
-A GM authorized as a sender installs the Data-Security SA outbound and uses its assigned Sender-ID bits when constructing ESP nonces.
-The GCKS allocates <code>GM_SENDER_ID</code> values in the KD Member Key Bag for authorized senders when required by Section 4.5.3.3 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
-A GM that is not authorized as a sender <span class="bcp14">MUST NOT</span> install the Data-Security SA outbound.
+It allocates <code>GM_SENDER_ID</code> values in the KD Member Key Bag when required by Section 4.5.3.3 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
 Implicit-IV ESP transforms remain prohibited for multi-sender Data-Security SAs as described in Section 2.7 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.<a href="#section-12-7" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="mls-object-carriers-and-exchanges">
+<div id="new-payloads-and-exchanges">
 <section id="section-13">
-      <h2 id="name-mls-object-carriers-and-exc">
-<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-mls-object-carriers-and-exc" class="section-name selfRef">MLS Object Carriers and Exchanges</a>
+      <h2 id="name-new-payloads-and-exchanges">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-new-payloads-and-exchanges" class="section-name selfRef">New Payloads and Exchanges</a>
       </h2>
-<p id="section-13-1">This profile does not define a separate IKEv2 payload type for each MLS object.
-GCKS-to-GM MLS objects that are delivered as part of policy or epoch-bound state use the KD payload defined in Section 4.5 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.
-MLS objects that are not KD downloads use the Notify payload defined in Section 3.10 of <span>[<a href="#RFC7296" class="cite xref">RFC7296</a>]</span>.
-Both carriers use the same object wrapper.
-The wrapper contains an object-type discriminator and an opaque object:<a href="#section-13-1" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-13-2">
-<pre>
-enum {
-  mls_key_package(1),
-  mls_group_info(2),
-  mls_partial_group_info(3),
-  mls_group_template(4),
-  mls_proposal(5),
-  mls_commit(6),
-  mls_welcome(7),
-  mls_ratchet_tree(8),
-  (65535)
-} MlsGikeObjectType;
-
-struct {
-  MlsGikeObjectType object_type;
-  opaque object&lt;V&gt;;
-} MlsGikeObject;
-</pre><a href="#section-13-2" class="pilcrow">¶</a>
-</div>
-<p id="section-13-3">For KD, this profile defines a multi-valued <code>MLS_OBJECT</code> attribute for both the Group Key Bag and Member Key Bag registries.
-Each attribute value contains one <code>MlsGikeObject</code>.
-KD-carried <code>MLS_OBJECT</code> attributes <span class="bcp14">MUST</span> appear only in messages sent by the GCKS.
-Group Key Bags carry group-scoped MLS objects associated with an epoch-bound Data-Security SA SPI, such as Commit fan-out paired with a fresh GSA.
-Member Key Bags carry GCKS-originated member-scoped objects and objects that are not associated with a Data-Security SA SPI, such as Welcomes, founder bootstrap state, ratchet trees, and removal notices sent without a fresh GSA.
-This use of KD carries no <code>SA_KEY</code>, <code>WRAP_KEY</code>, or <code>AUTH_KEY</code> material.<a href="#section-13-3" class="pilcrow">¶</a></p>
-<p id="section-13-4">The bag type is semantically significant.
-A receiver <span class="bcp14">MUST</span> treat an <code>MLS_OBJECT</code> in a Group Key Bag as bound to the Data-Security SA identified by the Group Key Bag Protocol and SPI fields.
-A receiver <span class="bcp14">MUST</span> treat an <code>MLS_OBJECT</code> in a Member Key Bag as scoped to the authenticated peer and current G-IKEv2 group context, not to a Data-Security SA SPI.
-An implementation <span class="bcp14">MUST</span> reject an <code>MLS_OBJECT</code> that appears in a bag type other than the one specified for that use.<a href="#section-13-4" class="pilcrow">¶</a></p>
-<p id="section-13-5">For Notify, this profile defines an <code>MLS_OBJECT</code> Notify Message Status Type.
-The Notification Data contains one <code>MlsGikeObject</code>.
-Notify-carried <code>MLS_OBJECT</code> values are used for GM-to-GCKS uploads and for <code>GSA_MLS_REQUEST_COMMIT</code>.<a href="#section-13-5" class="pilcrow">¶</a></p>
-<table class="center" id="table-2">
-        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
-<thead>
-          <tr>
-            <th class="text-left" rowspan="1" colspan="1">MLS object use</th>
-            <th class="text-left" rowspan="1" colspan="1">Carrier</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Candidate request carrying <code>mls_key_package</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>N(MLS_OBJECT)</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Founder response carrying <code>mls_group_template</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">KD Member Key Bag</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Founder upload carrying <code>mls_group_info</code> and <code>mls_ratchet_tree</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>N(MLS_OBJECT)</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Commit request carrying <code>mls_proposal</code> to a designated committer</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>N(MLS_OBJECT)</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Designated-committer upload carrying <code>mls_commit</code>, optional <code>mls_welcome</code>, and <code>mls_partial_group_info</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>N(MLS_OBJECT)</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Welcome delivery carrying <code>mls_welcome</code> and <code>mls_ratchet_tree</code> to the candidate</td>
-            <td class="text-left" rowspan="1" colspan="1">KD Member Key Bag</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Existing-member fan-out carrying <code>mls_proposal</code> and <code>mls_commit</code> with the epoch-bound GSA</td>
-            <td class="text-left" rowspan="1" colspan="1">KD Group Key Bag</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Removal notice carrying <code>mls_proposal</code> and <code>mls_commit</code> without a fresh GSA</td>
-            <td class="text-left" rowspan="1" colspan="1">KD Member Key Bag</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Member path-refresh upload carrying <code>mls_commit</code> and <code>mls_partial_group_info</code>
-</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>N(MLS_OBJECT)</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">GCKS fan-out of an ordered path-refresh <code>mls_commit</code> with the epoch-bound GSA</td>
-            <td class="text-left" rowspan="1" colspan="1">KD Group Key Bag</td>
-          </tr>
-        </tbody>
-      </table>
-<p id="section-13-7"><code>mls_key_package</code> contains an MLS KeyPackage and an explicit MLS protocol version.
-The IKE layer treats the KeyPackage as opaque except for policy checks needed by the GCKS.<a href="#section-13-7" class="pilcrow">¶</a></p>
-<p id="section-13-8"><code>mls_group_template</code> contains the values needed by the first GM to create the initial MLS group.
-It is not a GroupInfo.<a href="#section-13-8" class="pilcrow">¶</a></p>
-<p id="section-13-9"><code>mls_group_info</code> contains a full MLS GroupInfo.
-It is used only on the founder bootstrap path and does not carry the MLS <code>ratchet_tree</code> GroupInfo extension.<a href="#section-13-9" class="pilcrow">¶</a></p>
-<p id="section-13-10"><code>mls_partial_group_info</code> contains the PartialGroupInfo structure from Section 4 of <span>[<a href="#I-D.ietf-mls-ratchet-tree-options" class="cite xref">I-D.ietf-mls-ratchet-tree-options</a>]</span>.
+<p id="section-13-1">This section lists the payload and exchange names used by this profile.
+The exact wire formats and IANA codepoints are open issues.<a href="#section-13-1" class="pilcrow">¶</a></p>
+<p id="section-13-2"><code>MLS_KEY_PACKAGE</code> carries an MLS KeyPackage and an explicit MLS protocol version.
+The IKE layer treats the KeyPackage as opaque except for policy checks needed by the GCKS.<a href="#section-13-2" class="pilcrow">¶</a></p>
+<p id="section-13-3"><code>MLS_GROUP_TEMPLATE</code> carries the values needed by the first GM to create the initial MLS group.
+It is not a GroupInfo.<a href="#section-13-3" class="pilcrow">¶</a></p>
+<p id="section-13-4"><code>MLS_GROUP_INFO</code> carries a full MLS GroupInfo.
+It is used only on the founder bootstrap path and does not carry the MLS <code>ratchet_tree</code> GroupInfo extension.<a href="#section-13-4" class="pilcrow">¶</a></p>
+<p id="section-13-5"><code>MLS_PARTIAL_GROUP_INFO</code> carries the PartialGroupInfo structure from Section 4 of <span>[<a href="#I-D.ietf-mls-ratchet-tree-options" class="cite xref">I-D.ietf-mls-ratchet-tree-options</a>]</span>.
 It is used after every Commit-driven epoch transition.
-Its <code>ratchet_tree_presence</code> field is <code>no_ratchet_tree</code>, because this profile does not carry the <code>ratchet_tree</code> extension in GroupInfo objects.<a href="#section-13-10" class="pilcrow">¶</a></p>
-<p id="section-13-11"><code>mls_proposal</code> contains an MLS PublicMessage containing a Proposal from the GCKS external sender.
-This profile uses it only for Add and Remove Proposals.<a href="#section-13-11" class="pilcrow">¶</a></p>
-<p id="section-13-12"><code>mls_commit</code> contains an MLS PublicMessage containing a Commit.
-If the Commit references a GCKS-authored Proposal, the referenced Proposal is delivered with it unless the receiver already has it.<a href="#section-13-12" class="pilcrow">¶</a></p>
-<p id="section-13-13"><code>mls_welcome</code> contains an MLS Welcome.
-The Welcome's encrypted GroupInfo does not contain a <code>ratchet_tree</code> extension in this profile.<a href="#section-13-13" class="pilcrow">¶</a></p>
-<p id="section-13-14"><code>mls_ratchet_tree</code> contains the public ratchet tree vector defined in Section 12.4.3.3 of <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
+Its <code>ratchet_tree_presence</code> field is <code>no_ratchet_tree</code>, because this profile does not carry the <code>ratchet_tree</code> extension in GroupInfo objects.<a href="#section-13-5" class="pilcrow">¶</a></p>
+<p id="section-13-6"><code>MLS_PROPOSAL</code> carries an MLS PublicMessage containing a Proposal from the GCKS external sender.
+This version uses it only for Add and Remove Proposals.<a href="#section-13-6" class="pilcrow">¶</a></p>
+<p id="section-13-7"><code>MLS_COMMIT</code> carries an MLS PublicMessage containing a Commit.
+If the Commit references a GCKS-authored Proposal, the referenced Proposal is delivered with it unless the receiver already has it.<a href="#section-13-7" class="pilcrow">¶</a></p>
+<p id="section-13-8"><code>MLS_WELCOME</code> carries an MLS Welcome.
+The Welcome's encrypted GroupInfo does not contain a <code>ratchet_tree</code> extension in this profile.<a href="#section-13-8" class="pilcrow">¶</a></p>
+<p id="section-13-9"><code>MLS_RATCHET_TREE</code> carries the public ratchet tree vector defined in Section 12.4.3.3 of <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
 The founder sends it to the GCKS during bootstrap, and the GCKS sends it to a newly added GM alongside the Welcome.
-The recipient verifies the tree against the <code>tree_hash</code> in the relevant GroupInfo before using it.<a href="#section-13-14" class="pilcrow">¶</a></p>
-<p id="section-13-15"><code>GSA_AUTH</code> is reused as the initial G-IKEv2 registration exchange with an <code>N(MLS_OBJECT)</code> notification carrying an <code>mls_key_package</code> object.
-<code>GSA_REGISTRATION</code> is reused for the same MLS-GIKE registration content when a GM joins another group over an established IKE SA.
-The response carries a non-installable GSA, optional KD for Sender-ID, and a KD-carried <code>mls_group_template</code> object only for the founder case.<a href="#section-13-15" class="pilcrow">¶</a></p>
-<p id="section-13-16"><code>GSA_MLS_REQUEST_COMMIT</code> is a new GCKS-initiated IKEv2 request/response exchange.
-The GCKS uses it to send an external Proposal to a designated committer.
-The response is empty unless the designated committer immediately returns an error Notify.
-The designated committer uploads the resulting Commit material separately with <code>GIKE_MLS_UPLOAD</code>.<a href="#section-13-16" class="pilcrow">¶</a></p>
-<p id="section-13-17"><code>GSA_INBAND_REKEY</code> is reused for GCKS-to-GM unicast delivery of epoch-bound state and related MLS objects.
-The GCKS uses it to deliver Welcomes and ratchet trees to newly added members and to fan out ordered Commits with the epoch-bound GSA.
-When the message installs a new Data-Security SA, it carries the GSA payload and the relevant KD-carried MLS objects.
-When the message only delivers a removal notice without a fresh GSA, the GSA payload is omitted.
-The response follows the <code>GSA_INBAND_REKEY</code> response shape in Section 2.4.2 of <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span> and is empty unless it carries an error Notify.<a href="#section-13-17" class="pilcrow">¶</a></p>
-<p id="section-13-18"><code>GIKE_MLS_UPLOAD</code> is a new GM-initiated IKEv2 request/response exchange.
-It is used by the founder to upload the initial GroupInfo and ratchet tree, by a designated committer to upload tentative Commit material, and by a member to post a path-refresh Commit and PartialGroupInfo to the GCKS.
-The request carries <code>N(MLS_OBJECT)</code> notifications.
-The response is empty on success or carries an error Notify on rejection.<a href="#section-13-18" class="pilcrow">¶</a></p>
-<p id="section-13-19"><code>MLS_COMMIT_REJECTED</code> is a new Notify Message Error Type defined by this document.
-At least stale epoch, invalid signature, unauthorized proposal, tree validation failure, and unauthorized identity need to be distinguishable rejection reasons.<a href="#section-13-19" class="pilcrow">¶</a></p>
+The recipient verifies the tree against the <code>tree_hash</code> in the relevant GroupInfo before using it.<a href="#section-13-9" class="pilcrow">¶</a></p>
+<p id="section-13-10"><code>GIKE_MLS_AUTH</code> is the G-IKEv2 registration exchange extended with <code>MLS_KEY_PACKAGE</code>.
+The response carries a non-installable GSA, optional KD for Sender-ID, and <code>MLS_GROUP_TEMPLATE</code> only for the founder case.<a href="#section-13-10" class="pilcrow">¶</a></p>
+<p id="section-13-11"><code>GIKE_MLS_PROPOSAL</code> is used by the GCKS to send an external Proposal to the designated committer and receive the resulting tentative Commit.<a href="#section-13-11" class="pilcrow">¶</a></p>
+<p id="section-13-12"><code>GIKE_MLS_COMMIT</code> is used by a member to post a path-refresh Commit to the GCKS and by the GCKS to fan out ordered Commits.<a href="#section-13-12" class="pilcrow">¶</a></p>
+<p id="section-13-13"><code>GIKE_MLS_WELCOME</code> is used by the GCKS to deliver the installable GSA, Welcome, and the public ratchet tree to a newly added member.<a href="#section-13-13" class="pilcrow">¶</a></p>
+<p id="section-13-14"><code>MLS_VERSION</code>, <code>MLS_COMMIT_ACCEPTED</code>, and <code>MLS_COMMIT_REJECTED</code> are new Notify types defined by this document.
+At least stale epoch, invalid signature, unauthorized proposal, tree validation failure, and unauthorized identity need to be distinguishable rejection reasons.<a href="#section-13-14" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
@@ -1903,8 +1741,7 @@ This exposes MLS handshake metadata to the GCKS, which is already the G-IKEv2 co
 The messages are still confidentiality-protected on the wire by the IKEv2 <code>SK{}</code> envelope between each GM and the GCKS.<a href="#section-14-6" class="pilcrow">¶</a></p>
 <p id="section-14-7">The Sender-ID mechanism remains security-critical for multi-sender ESP with counter-based modes.
 Reusing MLS exporter output without Sender-ID partitioning would risk key and nonce reuse.
-This draft therefore keeps <code>GROUP_SENDER</code>, <code>GWP_SENDER_ID_BITS</code>, and <code>GM_SENDER_ID</code> where required by <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span> for authorized senders.
-Because this profile uses a shared Data-Security SA key, receiver-only authorization is enforced as local IPsec policy and GCKS authorization, not by withholding the ESP traffic key from receivers.<a href="#section-14-7" class="pilcrow">¶</a></p>
+This draft therefore keeps <code>GROUP_SENDER</code>, <code>GWP_SENDER_ID_BITS</code>, and <code>GM_SENDER_ID</code> where required by <span>[<a href="#RFC9838" class="cite xref">RFC9838</a>]</span>.<a href="#section-14-7" class="pilcrow">¶</a></p>
 <p id="section-14-8">Every accepted MLS epoch uses a fresh Data-Security SA SPI.
 This lets receivers distinguish old-key and new-key packets during the activation and deactivation overlap controlled by GWP_ATD and GWP_DTD.<a href="#section-14-8" class="pilcrow">¶</a></p>
 <p id="section-14-9">Removal has a residual acceptance window during that overlap.
@@ -1927,13 +1764,9 @@ If the GCKS authorizes an IKE identity but accepts an unrelated MLS credential i
 <a href="#section-15" class="section-number selfRef">15. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
 <p id="section-15-1">This document names several new protocol codepoints but does not assign final values.
-If standardized, the draft is expected to request new IKEv2 Exchange Type values for <code>GSA_MLS_REQUEST_COMMIT</code> and <code>GIKE_MLS_UPLOAD</code>.
-The existing <code>GSA_AUTH</code>, <code>GSA_REGISTRATION</code>, and <code>GSA_INBAND_REKEY</code> exchange types are otherwise reused.
-It is not expected to request new IKEv2 Payload Type values for MLS objects.
-MLS objects are carried in the existing KD and Notify payloads.
-It is expected to request a new <code>MLS_OBJECT</code> Group Key Bag Attribute and a new <code>MLS_OBJECT</code> Member Key Bag Attribute.
-It is expected to request a new IKEv2 Notify Message Status Type value for <code>MLS_OBJECT</code>.
-It is expected to request a new IKEv2 Notify Message Error Type value for <code>MLS_COMMIT_REJECTED</code>.
+If standardized, the draft is expected to request new IKEv2 Exchange Type values for <code>GIKE_MLS_AUTH</code>, <code>GIKE_MLS_REGISTRATION</code>, <code>GIKE_MLS_PROPOSAL</code>, <code>GIKE_MLS_COMMIT</code>, and <code>GIKE_MLS_WELCOME</code>.
+It is expected to request new IKEv2 Payload Type values for <code>MLS_KEY_PACKAGE</code>, <code>MLS_GROUP_INFO</code>, <code>MLS_PARTIAL_GROUP_INFO</code>, <code>MLS_GROUP_TEMPLATE</code>, <code>MLS_PROPOSAL</code>, <code>MLS_COMMIT</code>, <code>MLS_WELCOME</code>, and <code>MLS_RATCHET_TREE</code>.
+It is expected to request new IKEv2 Notify Message Type values for <code>MLS_VERSION</code>, <code>MLS_COMMIT_ACCEPTED</code>, and <code>MLS_COMMIT_REJECTED</code>.
 It is also expected to register the MLS exporter label used for ESP key derivation.<a href="#section-15-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1952,9 +1785,13 @@ OPEN QUESTION: Can a GCKS-authored <code>GroupContextExtensions</code> Proposal 
 The policy specified above uses the lowest non-blank eligible leaf because it is deterministic and easy to specify.<a href="#section-16-4" class="pilcrow">¶</a></p>
 <p id="section-16-5">The rejection code structure for <code>MLS_COMMIT_REJECTED</code> needs to be specified.
 This could be a single Notify with a subcode or separate Notify types.<a href="#section-16-5" class="pilcrow">¶</a></p>
-<p id="section-16-6">The final MLS exporter label needs review.
+<p id="section-16-6">The draft needs to decide whether to keep using KD Member Key Bags for <code>GM_SENDER_ID</code> or define a narrower Sender-ID payload.
+The current design reuses KD only for <code>GM_SENDER_ID</code>.<a href="#section-16-6" class="pilcrow">¶</a></p>
+<p id="section-16-7">The final MLS exporter label needs review.
 This document uses <code>MLS-GIKE ESP key</code> as a descriptive placeholder.
-The final string should be checked against MLS Exporter Labels registry guidance and IPsec/IKE naming practice.<a href="#section-16-6" class="pilcrow">¶</a></p>
+The final string should be checked against MLS Exporter Labels registry guidance and IPsec/IKE naming practice.<a href="#section-16-7" class="pilcrow">¶</a></p>
+<p id="section-16-8">The draft needs to decide whether the MLS Commit fan-out exchange should allocate a new exchange type or reuse <code>GSA_INBAND_REKEY</code> with a new payload set.
+The current design uses a new exchange type for clarity.<a href="#section-16-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-combined-references">
@@ -2016,8 +1853,8 @@ The final string should be checked against MLS Exporter Labels registry guidance
 </div>
 <div id="authors-addresses">
 <section id="appendix-A">
-      <h2 id="name-authors-address">
-<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>
 <address class="vcard">
         <div dir="auto" class="left"><span class="fn nameRole">Konrad Kohbrok</span></div>
@@ -2025,6 +1862,22 @@ The final string should be checked against MLS Exporter Labels registry guidance
 <div class="email">
 <span>Email:</span>
 <a href="mailto:konrad@ratchet.ing" class="email">konrad@ratchet.ing</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Raphael Robert</span></div>
+<div dir="auto" class="left"><span class="org">Phoenix R&amp;D</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:ietf@raphaelrobert.com" class="email">ietf@raphaelrobert.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Valery Smyslov</span></div>
+<div dir="auto" class="left"><span class="org">Elvis Plus</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:valery@smyslov.net" class="email">valery@smyslov.net</a>
 </div>
 </address>
 </section>
