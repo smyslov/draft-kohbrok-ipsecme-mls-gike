@@ -33,8 +33,8 @@ author:
     email: ietf@raphaelrobert.com
  -
     fullname: Valery Smyslov
-    organization: Elvis Plus
-    email: valery@smyslov.net
+    organization: ELVIS-PLUS
+    email: svan@elvis.ru
 
 normative:
   RFC7296:
