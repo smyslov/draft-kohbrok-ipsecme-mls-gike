@@ -178,10 +178,11 @@ New members join through Add plus Welcome.
 This profile does not define joining through External Commit, as defined in Section 12.4.3.2 of {{RFC9420}}.
 OPEN QUESTION: Should External Commit be specified for joining, resynchronization, or both, and what GCKS validation is required?
 
-All GMs are both senders and receivers.
-There is no sender/receiver role split in this profile.
-Because all GMs can send on the same group Data-Security SA, this draft keeps the Sender-ID machinery of G-IKEv2 for counter-based ESP modes.
-TODO: Define sender/receiver authorization for deployments with receive-only or send-only members.
+MLS membership is distinct from data-plane sender authorization.
+A GM that intends to send ESP traffic on a Data-Security SA indicates that role with the `GROUP_SENDER` notification defined in Section 4.7.4 of {{RFC9838}}.
+A GM that does not request sender authorization can still join the MLS group and derive the epoch's Data-Security SA keys, but it is not authorized to emit ESP traffic for that SA.
+This draft keeps the Sender-ID machinery of G-IKEv2 for authorized senders using counter-based ESP modes.
+This is G-IKEv2 policy authorization and nonce-space partitioning, not per-sender traffic-key separation.
 
 The GCKS is a single instance for a group.
 GCKS replication and failover are out of scope.
@@ -264,15 +265,14 @@ The uploaded GroupInfo becomes the GCKS baseline for public tracked state.
 # Registration
 
 A Candidate GM authenticates to the GCKS using the same IKEv2 authentication machinery used by G-IKEv2.
-The request carries `IDg`, a `GROUP_SENDER` notification, an `MLS_KEY_PACKAGE`, and an optional `MLS_VERSION` notification.
-Every GM sends `GROUP_SENDER` because this profile treats every GM as both a sender and a receiver.
+The request carries `IDg`, an `MLS_KEY_PACKAGE`, an optional `MLS_VERSION` notification, and a `GROUP_SENDER` notification only if the GM intends to send Data-Security SA traffic.
 
 The `MLS_KEY_PACKAGE` payload contains an MLS KeyPackage.
 The identity in the KeyPackage LeafNode credential MUST be bound to the IKE identity authenticated in the exchange.
 For example, a basic credential identity can equal `IDi`, or an X.509 credential can contain a subjectAltName matching `IDi`.
 
 The GCKS response carries a GSA payload that describes policy but is not installable as a Data-Security SA.
-If the Data-Security SA uses a counter-based ESP mode, the response also carries a KD Member Key Bag containing one or more `GM_SENDER_ID` attributes as specified by Section 4.5.3.3 of {{RFC9838}}.
+If the GM requested sender authorization and the Data-Security SA uses a counter-based ESP mode, the response also carries a KD Member Key Bag containing one or more `GM_SENDER_ID` attributes as specified by Section 4.5.3.3 of {{RFC9838}}.
 The response does not carry MLS group state unless the group is empty and the candidate is becoming the founder.
 The candidate is not yet in an MLS epoch from which it can derive traffic keys.
 Any SPI carried in that GSA is tentative until the GSA for the accepted MLS epoch is delivered.
@@ -383,7 +383,10 @@ Receivers need the SPI to distinguish packets protected with the old epoch key f
 
 For counter-based ESP modes, this draft inherits the Sender-ID rules from Section 2.5 of {{RFC9838}}.
 The GCKS includes `GWP_SENDER_ID_BITS` when required by Section 4.4.3.1.2 of {{RFC9838}}.
-It allocates `GM_SENDER_ID` values in the KD Member Key Bag when required by Section 4.5.3.3 of {{RFC9838}}.
+A GM authorized as a receiver installs the Data-Security SA inbound.
+A GM authorized as a sender installs the Data-Security SA outbound and uses its assigned Sender-ID bits when constructing ESP nonces.
+The GCKS allocates `GM_SENDER_ID` values in the KD Member Key Bag for authorized senders when required by Section 4.5.3.3 of {{RFC9838}}.
+A GM that is not authorized as a sender MUST NOT install the Data-Security SA outbound.
 Implicit-IV ESP transforms remain prohibited for multi-sender Data-Security SAs as described in Section 2.7 of {{RFC9838}}.
 
 # New Payloads and Exchanges
@@ -461,7 +464,8 @@ The messages are still confidentiality-protected on the wire by the IKEv2 `SK{}`
 
 The Sender-ID mechanism remains security-critical for multi-sender ESP with counter-based modes.
 Reusing MLS exporter output without Sender-ID partitioning would risk key and nonce reuse.
-This draft therefore keeps `GROUP_SENDER`, `GWP_SENDER_ID_BITS`, and `GM_SENDER_ID` where required by {{RFC9838}}.
+This draft therefore keeps `GROUP_SENDER`, `GWP_SENDER_ID_BITS`, and `GM_SENDER_ID` where required by {{RFC9838}} for authorized senders.
+Because this profile uses a shared Data-Security SA key, receiver-only authorization is enforced as local IPsec policy and GCKS authorization, not by withholding the ESP traffic key from receivers.
 
 Every accepted MLS epoch uses a fresh Data-Security SA SPI.
 This lets receivers distinguish old-key and new-key packets during the activation and deactivation overlap controlled by GWP_ATD and GWP_DTD.
