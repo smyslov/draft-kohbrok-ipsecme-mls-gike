@@ -75,6 +75,9 @@ The ESP data plane and the SPD/SAD model remain the IPsec data plane described b
 The main change is that traffic keys are no longer downloaded by the GCKS in KD Group Key Bags.
 Instead, every GM that is an MLS member derives the Data-Security SA keys for the current MLS epoch with the MLS exporter.
 The GCKS does not hold an MLS member leaf and therefore does not derive the exported traffic keys.
+The existing KD payload is still reused for GCKS-originated MLS objects and Sender-ID material.
+GM-originated MLS objects use the existing Notify payload with profile-defined notification data.
+This profile therefore does not allocate a separate IKE payload type for every MLS structure it carries.
 
 This document is descriptive and is not a complete normative specification.
 Several details needed for interoperability are intentionally stated as design constraints or open issues.
@@ -197,7 +200,9 @@ TODO: Decide whether AH Data-Security SAs need explicit support or explicit excl
 The design keeps the G-IKEv2 policy plane and replaces the key-distribution plane.
 The GSA payload defined in Section 4.4 of {{RFC9838}} continues to describe the Data-Security SA policy, traffic selectors, transforms, Sender-ID parameters, and rollover timing.
 The KD payload defined in Section 4.5 of {{RFC9838}} is no longer used to carry TEK or KEK key material.
-KD Member Key Bags are retained only when needed to carry `GM_SENDER_ID` attributes for counter-based ESP modes.
+This profile reuses KD bags for two GCKS-originated purposes: KD Member Key Bags carry `GM_SENDER_ID` attributes and member-scoped MLS objects, and KD Group Key Bags carry group-scoped MLS objects associated with an epoch-bound Data-Security SA SPI.
+This use of KD carries no `SA_KEY`, `WRAP_KEY`, or `AUTH_KEY` material.
+MLS objects that flow from a GM to the GCKS use the Notify payload instead of KD.
 
 The GCKS creates a per-group MLS external-sender signing key.
 The public key and credential for that signing key are installed in the MLS `external_senders` GroupContext extension.
@@ -233,12 +238,15 @@ The following table summarizes the intended mapping.
 | GM | MLS group member with one leaf in the MLS tree. |
 | Group ID (`IDg`) | MLS `group_id`, bound to the G-IKEv2 group. |
 | GSA payload | Reused for IPsec policy and Data-Security SA parameters. |
-| KD Group Key Bag | Removed for SA key delivery. |
-| KD Member Key Bag | Retained only for `GM_SENDER_ID` when needed. |
+| KD Group Key Bag | Retained for GCKS-to-GM group-scoped MLS objects, but not for SA key delivery. |
+| KD Member Key Bag | Retained for `GM_SENDER_ID` and GCKS-to-GM member-scoped MLS objects. |
+| Notify payload | Used for MLS objects that are not KD downloads. |
 | Rekey SA and KEK | Removed from MLS-GIKE key delivery. |
 | TEK key material | Derived from the MLS exporter. |
 | `GSA_REKEY` | Not used. |
-| `GSA_AUTH` and `GSA_REGISTRATION` | Extended with an MLS KeyPackage and MLS version negotiation. |
+| `GSA_AUTH` and `GSA_REGISTRATION` | Reused with `N(MLS_OBJECT)` in requests and KD-carried MLS objects in responses. |
+| `GSA_MLS_REQUEST_COMMIT` | New GCKS-to-GM exchange asking a designated GM to commit a GCKS-authored Proposal. |
+| `GSA_INBAND_REKEY` | Reused for GCKS-to-GM unicast delivery of epoch-bound GSA updates and related MLS objects. |
 | Member exclusion | GCKS sends an external Remove Proposal. A designated GM commits it. |
 | Sender-ID | Reused for counter-based ESP nonce partitioning. |
 | GWP_ATD and GWP_DTD | Reused to manage Data-Security SA rollover. |
@@ -250,13 +258,13 @@ See Section 11 of {{RFC9420}}.
 Because the GCKS is not an MLS member, the first GM to join a configured but empty G-IKEv2 group becomes the MLS founder.
 
 When the GCKS is configured for a new group, it generates a per-group MLS external-sender signing key pair.
-The public key and credential for that pair are placed in an `MLS_GROUP_TEMPLATE`.
+The public key and credential for that pair are placed in an `mls_group_template` object carried in KD.
 The template also carries the MLS cipher suite, the MLS group identifier, required capabilities, and any other GroupContext extensions required by GCKS policy.
 
 The first Candidate GM authenticates to the GCKS with the MLS-GIKE variant of `GSA_AUTH`.
-The GCKS returns the normal GSA policy and the `MLS_GROUP_TEMPLATE`.
+The GCKS returns the normal GSA policy and the `mls_group_template` object.
 The founder creates a one-member MLS group using the template values.
-The founder then uploads a full `GroupInfo` and the initial public ratchet tree to the GCKS.
+The founder then uses `GIKE_MLS_UPLOAD` to send `N(MLS_OBJECT)` notifications carrying an `mls_group_info` object containing a full `GroupInfo` and an `mls_ratchet_tree` object containing the initial public ratchet tree to the GCKS.
 
 The GCKS verifies that the founder's GroupContext matches the template, verifies that the uploaded tree hash matches the GroupInfo tree hash, and verifies the founder's GroupInfo signature against the founder's LeafNode signing key.
 The GCKS cannot verify the MLS confirmation tag.
@@ -265,9 +273,11 @@ The uploaded GroupInfo becomes the GCKS baseline for public tracked state.
 # Registration
 
 A Candidate GM authenticates to the GCKS using the same IKEv2 authentication machinery used by G-IKEv2.
-The request carries `IDg`, an `MLS_KEY_PACKAGE`, an optional `MLS_VERSION` notification, and a `GROUP_SENDER` notification only if the GM intends to send Data-Security SA traffic.
+The request carries `IDg`, an `N(MLS_OBJECT)` notification containing an `mls_key_package` object, and a `GROUP_SENDER` notification only if the GM intends to send Data-Security SA traffic.
 
-The `MLS_KEY_PACKAGE` payload contains an MLS KeyPackage.
+The `mls_key_package` object contains an MLS KeyPackage.
+The KeyPackage identifies the MLS protocol version and cipher suite supported for this join.
+If the GCKS cannot accept those MLS parameters, it rejects the exchange with `NO_PROPOSAL_CHOSEN`.
 The identity in the KeyPackage LeafNode credential MUST be bound to the IKE identity authenticated in the exchange.
 For example, a basic credential identity can equal `IDi`, or an X.509 credential can contain a subjectAltName matching `IDi`.
 
@@ -276,7 +286,7 @@ If the GM requested sender authorization and the Data-Security SA uses a counter
 The response does not carry MLS group state unless the group is empty and the candidate is becoming the founder.
 The candidate is not yet in an MLS epoch from which it can derive traffic keys.
 Any SPI carried in that GSA is tentative until the GSA for the accepted MLS epoch is delivered.
-The installable GSA is sent later with `MLS_WELCOME` to the candidate and with the ordered `MLS_COMMIT` to existing members.
+The installable GSA is sent later with `mls_welcome` to the candidate and with the ordered `mls_commit` to existing members.
 If the installable GSA differs from the registration GSA, the candidate validates it again during Welcome processing.
 This duplicate GSA transmission gives the candidate an early policy check while keeping SAD installation tied to the accepted MLS epoch.
 
@@ -286,36 +296,47 @@ After registration, a Candidate GM has an IKE SA to the GCKS and has received th
 The GCKS drives the join by sending an external Add Proposal to a designated committer.
 
 ~~~ aasvg
-Candidate        GCKS        Designated GM D     Existing GMs
-    |             |                 |                  |
-    | GIKE_MLS_AUTH {KeyPackage}    |                  |
-    +------------>|                 |                  |
-    |             |                 |                  |
-    | GSA(policy), optional KD      |                  |
-    |<------------+                 |                  |
-    |             |                 |                  |
-    |             | MLS_PROPOSAL    |                  |
-    |             +---------------->|                  |
-    |             |                 |                  |
-    |             | MLS_COMMIT, MLS_WELCOME, PGI       |
-    |             |<----------------+                  |
-    |             |                 |                  |
-    | GSA(epoch), MLS_WELCOME, MLS_RATCHET_TREE        |
-    |<------------+                 |                  |
-    |             |                 |                  |
-    |             | GSA(epoch), MLS_PROPOSAL, MLS_COMMIT |
-    |             +----------------------------------->|
-    |             |                 |                  |
+Candidate        GCKS        Designated GM D                         Existing GMs
+    |             |                 |                                      |
+    | GSA_AUTH {N(MLS_OBJECT: mls_key_package)}                            |
+    +------------>|                 |                                      |
+    |             |                 |                                      |
+    | GSA(policy), optional KD      |                                      |
+    |<------------+                 |                                      |
+    |             |                 |                                      |
+    |             | GSA_MLS_REQUEST_COMMIT {N(MLS_OBJECT: mls_proposal)}   |
+    |             +---------------->|                                      |
+    |             |                 |                                      |
+    |             | <empty response>                                      |
+    |             |<----------------+                                      |
+    |             |                 |                                      |
+    |             | GIKE_MLS_UPLOAD {N(MLS_OBJECT: mls_commit),           |
+    |             |                  N(MLS_OBJECT: mls_welcome),          |
+    |             |                  N(MLS_OBJECT: mls_partial_group_info)}|
+    |             |<----------------+                                      |
+    |             |                 |                                      |
+    |             | <empty or error>                                      |
+    |             +---------------->|                                      |
+    |             |                 |                                      |
+    | GSA_INBAND_REKEY {GSA(epoch), KD(mls_welcome, mls_ratchet_tree)}     |
+    |<------------+                 |                                      |
+    |             |                 |                                      |
+    |             | GSA_INBAND_REKEY {GSA(epoch), KD(mls_proposal,        |
+    |             |                    mls_commit)}                       |
+    |             +------------------------------------------------------->|
+    |             |                 |                                      |
 ~~~
 {: #fig-add-member-flow title="Adding a Member"}
 
 The GCKS signs the Add Proposal with its MLS external-sender key.
+The Proposal is carried in `GSA_MLS_REQUEST_COMMIT`.
 The designated committer verifies the Proposal using the `external_senders` extension in its current MLS group state.
-It creates a Commit that references the Proposal, includes an UpdatePath, creates a Welcome for the candidate, signs a GroupInfo for the new epoch without a `ratchet_tree` extension, and uploads the Commit, Welcome, and PartialGroupInfo to the GCKS.
+It creates a Commit that references the Proposal, includes an UpdatePath, creates a Welcome for the candidate, signs a GroupInfo for the new epoch without a `ratchet_tree` extension, and uploads the Commit, Welcome, and PartialGroupInfo to the GCKS as `N(MLS_OBJECT)` notifications in `GIKE_MLS_UPLOAD`.
 
 The designated committer treats the new epoch as tentative until the GCKS orders the Commit.
 If the GCKS rejects the Commit, the committer discards the tentative epoch.
-If the GCKS accepts it, the GCKS allocates a fresh Data-Security SA SPI, stores the public state, sends the Welcome, GSA, and GCKS-tracked ratchet tree to the candidate, and fans the GSA, Proposal, and Commit to existing GMs including the committer.
+If the GCKS accepts it, the GCKS allocates a fresh Data-Security SA SPI, stores the public state, sends the Welcome, GSA, and GCKS-tracked ratchet tree to the candidate using `GSA_INBAND_REKEY`, and fans the GSA, Proposal, and Commit to existing GMs including the committer using `GSA_INBAND_REKEY`.
+The Welcome, ratchet tree, Proposal, and Commit are carried as MLS objects inside KD.
 The GSA sent at this point is the GSA that GMs use for SAD installation after MLS acceptance.
 
 The Proposal is included in the fan-out because the Commit references the Proposal by hash.
@@ -330,11 +351,12 @@ It then derives the ESP keys for the new Data-Security SA.
 
 The GCKS removes a member by sending an external Remove Proposal to a designated committer.
 The designated committer is the lowest non-blank leaf that is not the leaf being removed.
-The designated committer creates a Commit that references the Remove Proposal and returns the Commit plus PartialGroupInfo to the GCKS.
+The Proposal is carried in `GSA_MLS_REQUEST_COMMIT`.
+The designated committer creates a Commit that references the Remove Proposal and uploads the Commit plus PartialGroupInfo to the GCKS as `N(MLS_OBJECT)` notifications in `GIKE_MLS_UPLOAD`.
 
-If the GCKS accepts the public state transition, it allocates a fresh Data-Security SA SPI and fans `GSA`, `MLS_PROPOSAL`, and `MLS_COMMIT` to the remaining GMs.
+If the GCKS accepts the public state transition, it allocates a fresh Data-Security SA SPI and fans `GSA` plus KD-carried `mls_proposal` and `mls_commit` objects to the remaining GMs using `GSA_INBAND_REKEY`.
 The removed GM does not receive the fresh GSA.
-If the removed GM's IKE SA is still available, the GCKS sends the `MLS_PROPOSAL` and `MLS_COMMIT` without the fresh GSA to the removed GM so it has an authenticated indication that it has been removed.
+If the removed GM's IKE SA is still available, the GCKS sends the `mls_proposal` and `mls_commit` objects without the fresh GSA to the removed GM so it has an authenticated indication that it has been removed.
 The removed GM can verify the Remove proposal and Commit structure but cannot derive the new epoch.
 If that delivery is not possible, the GCKS needs another authenticated indication, such as an IKE Delete or Notify, before it accepts further group traffic from that GM.
 The GCKS then tears down the IKE SA to the removed GM if appropriate.
@@ -343,7 +365,7 @@ There is no separate KEK-then-TEK rekey step.
 The MLS Remove Commit creates the new epoch, and the removed member cannot compute the new epoch secret.
 The removed member still knows the previous epoch's ESP key and any Sender-ID values it was assigned.
 While remaining members continue to accept packets protected under the previous Data-Security SA during the GWP_DTD overlap, there is a residual acceptance window for packets from the removed member.
-This version identifies that rollover window.
+This profile identifies that rollover window.
 It does not specify tighter exclusion behavior.
 
 # Member-Initiated Path Refresh
@@ -352,8 +374,8 @@ A GM can refresh its MLS contribution by creating an empty Commit with an Update
 This is the MLS mechanism used here for member-initiated post-compromise recovery.
 The Commit contains no Proposals.
 
-The GM sends the Commit and PartialGroupInfo to the GCKS.
-If the Commit's epoch matches the GCKS current epoch, the GCKS orders it, allocates a fresh Data-Security SA SPI, and fans `GSA` plus `MLS_COMMIT` to every GM including the author.
+The GM sends the Commit and PartialGroupInfo to the GCKS using `GIKE_MLS_UPLOAD` with `N(MLS_OBJECT)` notifications.
+If the Commit's epoch matches the GCKS current epoch, the GCKS orders it, allocates a fresh Data-Security SA SPI, and fans `GSA` plus a KD-carried `mls_commit` object to every GM including the author using `GSA_INBAND_REKEY`.
 The author applies its own Commit only when it receives the GCKS-ordered copy.
 
 If another Commit has already been accepted for that epoch, the GCKS rejects the later Commit with `MLS_COMMIT_REJECTED` and a stale-epoch indication.
@@ -389,47 +411,109 @@ The GCKS allocates `GM_SENDER_ID` values in the KD Member Key Bag for authorized
 A GM that is not authorized as a sender MUST NOT install the Data-Security SA outbound.
 Implicit-IV ESP transforms remain prohibited for multi-sender Data-Security SAs as described in Section 2.7 of {{RFC9838}}.
 
-# New Payloads and Exchanges
+# MLS Object Carriers and Exchanges
 
-This section lists the payload and exchange names used by this profile.
-The exact wire formats and IANA codepoints are open issues.
+This profile does not define a separate IKEv2 payload type for each MLS object.
+GCKS-to-GM MLS objects that are delivered as part of policy or epoch-bound state use the KD payload defined in Section 4.5 of {{RFC9838}}.
+MLS objects that are not KD downloads use the Notify payload defined in Section 3.10 of {{RFC7296}}.
+Both carriers use the same object wrapper.
+The wrapper contains an object-type discriminator and an opaque object:
 
-`MLS_KEY_PACKAGE` carries an MLS KeyPackage and an explicit MLS protocol version.
+~~~
+enum {
+  mls_key_package(1),
+  mls_group_info(2),
+  mls_partial_group_info(3),
+  mls_group_template(4),
+  mls_proposal(5),
+  mls_commit(6),
+  mls_welcome(7),
+  mls_ratchet_tree(8),
+  (65535)
+} MlsGikeObjectType;
+
+struct {
+  MlsGikeObjectType object_type;
+  opaque object<V>;
+} MlsGikeObject;
+~~~
+
+For KD, this profile defines a multi-valued `MLS_OBJECT` attribute for both the Group Key Bag and Member Key Bag registries.
+Each attribute value contains one `MlsGikeObject`.
+KD-carried `MLS_OBJECT` attributes MUST appear only in messages sent by the GCKS.
+Group Key Bags carry group-scoped MLS objects associated with an epoch-bound Data-Security SA SPI, such as Commit fan-out paired with a fresh GSA.
+Member Key Bags carry GCKS-originated member-scoped objects and objects that are not associated with a Data-Security SA SPI, such as Welcomes, founder bootstrap state, ratchet trees, and removal notices sent without a fresh GSA.
+This use of KD carries no `SA_KEY`, `WRAP_KEY`, or `AUTH_KEY` material.
+
+The bag type is semantically significant.
+A receiver MUST treat an `MLS_OBJECT` in a Group Key Bag as bound to the Data-Security SA identified by the Group Key Bag Protocol and SPI fields.
+A receiver MUST treat an `MLS_OBJECT` in a Member Key Bag as scoped to the authenticated peer and current G-IKEv2 group context, not to a Data-Security SA SPI.
+An implementation MUST reject an `MLS_OBJECT` that appears in a bag type other than the one specified for that use.
+
+For Notify, this profile defines an `MLS_OBJECT` Notify Message Status Type.
+The Notification Data contains one `MlsGikeObject`.
+Notify-carried `MLS_OBJECT` values are used for GM-to-GCKS uploads and for `GSA_MLS_REQUEST_COMMIT`.
+
+| MLS object use | Carrier |
+|---|---|
+| Candidate request carrying `mls_key_package` | `N(MLS_OBJECT)` |
+| Founder response carrying `mls_group_template` | KD Member Key Bag |
+| Founder upload carrying `mls_group_info` and `mls_ratchet_tree` | `N(MLS_OBJECT)` |
+| Commit request carrying `mls_proposal` to a designated committer | `N(MLS_OBJECT)` |
+| Designated-committer upload carrying `mls_commit`, optional `mls_welcome`, and `mls_partial_group_info` | `N(MLS_OBJECT)` |
+| Welcome delivery carrying `mls_welcome` and `mls_ratchet_tree` to the candidate | KD Member Key Bag |
+| Existing-member fan-out carrying `mls_proposal` and `mls_commit` with the epoch-bound GSA | KD Group Key Bag |
+| Removal notice carrying `mls_proposal` and `mls_commit` without a fresh GSA | KD Member Key Bag |
+| Member path-refresh upload carrying `mls_commit` and `mls_partial_group_info` | `N(MLS_OBJECT)` |
+| GCKS fan-out of an ordered path-refresh `mls_commit` with the epoch-bound GSA | KD Group Key Bag |
+
+`mls_key_package` contains an MLS KeyPackage and an explicit MLS protocol version.
 The IKE layer treats the KeyPackage as opaque except for policy checks needed by the GCKS.
 
-`MLS_GROUP_TEMPLATE` carries the values needed by the first GM to create the initial MLS group.
+`mls_group_template` contains the values needed by the first GM to create the initial MLS group.
 It is not a GroupInfo.
 
-`MLS_GROUP_INFO` carries a full MLS GroupInfo.
+`mls_group_info` contains a full MLS GroupInfo.
 It is used only on the founder bootstrap path and does not carry the MLS `ratchet_tree` GroupInfo extension.
 
-`MLS_PARTIAL_GROUP_INFO` carries the PartialGroupInfo structure from Section 4 of {{I-D.ietf-mls-ratchet-tree-options}}.
+`mls_partial_group_info` contains the PartialGroupInfo structure from Section 4 of {{I-D.ietf-mls-ratchet-tree-options}}.
 It is used after every Commit-driven epoch transition.
 Its `ratchet_tree_presence` field is `no_ratchet_tree`, because this profile does not carry the `ratchet_tree` extension in GroupInfo objects.
 
-`MLS_PROPOSAL` carries an MLS PublicMessage containing a Proposal from the GCKS external sender.
-This version uses it only for Add and Remove Proposals.
+`mls_proposal` contains an MLS PublicMessage containing a Proposal from the GCKS external sender.
+This profile uses it only for Add and Remove Proposals.
 
-`MLS_COMMIT` carries an MLS PublicMessage containing a Commit.
+`mls_commit` contains an MLS PublicMessage containing a Commit.
 If the Commit references a GCKS-authored Proposal, the referenced Proposal is delivered with it unless the receiver already has it.
 
-`MLS_WELCOME` carries an MLS Welcome.
+`mls_welcome` contains an MLS Welcome.
 The Welcome's encrypted GroupInfo does not contain a `ratchet_tree` extension in this profile.
 
-`MLS_RATCHET_TREE` carries the public ratchet tree vector defined in Section 12.4.3.3 of {{RFC9420}}.
+`mls_ratchet_tree` contains the public ratchet tree vector defined in Section 12.4.3.3 of {{RFC9420}}.
 The founder sends it to the GCKS during bootstrap, and the GCKS sends it to a newly added GM alongside the Welcome.
 The recipient verifies the tree against the `tree_hash` in the relevant GroupInfo before using it.
 
-`GIKE_MLS_AUTH` is the G-IKEv2 registration exchange extended with `MLS_KEY_PACKAGE`.
-The response carries a non-installable GSA, optional KD for Sender-ID, and `MLS_GROUP_TEMPLATE` only for the founder case.
+`GSA_AUTH` is reused as the initial G-IKEv2 registration exchange with an `N(MLS_OBJECT)` notification carrying an `mls_key_package` object.
+`GSA_REGISTRATION` is reused for the same MLS-GIKE registration content when a GM joins another group over an established IKE SA.
+The response carries a non-installable GSA, optional KD for Sender-ID, and a KD-carried `mls_group_template` object only for the founder case.
 
-`GIKE_MLS_PROPOSAL` is used by the GCKS to send an external Proposal to the designated committer and receive the resulting tentative Commit.
+`GSA_MLS_REQUEST_COMMIT` is a new GCKS-initiated IKEv2 request/response exchange.
+The GCKS uses it to send an external Proposal to a designated committer.
+The response is empty unless the designated committer immediately returns an error Notify.
+The designated committer uploads the resulting Commit material separately with `GIKE_MLS_UPLOAD`.
 
-`GIKE_MLS_COMMIT` is used by a member to post a path-refresh Commit to the GCKS and by the GCKS to fan out ordered Commits.
+`GSA_INBAND_REKEY` is reused for GCKS-to-GM unicast delivery of epoch-bound state and related MLS objects.
+The GCKS uses it to deliver Welcomes and ratchet trees to newly added members and to fan out ordered Commits with the epoch-bound GSA.
+When the message installs a new Data-Security SA, it carries the GSA payload and the relevant KD-carried MLS objects.
+When the message only delivers a removal notice without a fresh GSA, the GSA payload is omitted.
+The response follows the `GSA_INBAND_REKEY` response shape in Section 2.4.2 of {{RFC9838}} and is empty unless it carries an error Notify.
 
-`GIKE_MLS_WELCOME` is used by the GCKS to deliver the installable GSA, Welcome, and the public ratchet tree to a newly added member.
+`GIKE_MLS_UPLOAD` is a new GM-initiated IKEv2 request/response exchange.
+It is used by the founder to upload the initial GroupInfo and ratchet tree, by a designated committer to upload tentative Commit material, and by a member to post a path-refresh Commit and PartialGroupInfo to the GCKS.
+The request carries `N(MLS_OBJECT)` notifications.
+The response is empty on success or carries an error Notify on rejection.
 
-`MLS_VERSION`, `MLS_COMMIT_ACCEPTED`, and `MLS_COMMIT_REJECTED` are new Notify types defined by this document.
+`MLS_COMMIT_REJECTED` is a new Notify Message Error Type defined by this document.
 At least stale epoch, invalid signature, unauthorized proposal, tree validation failure, and unauthorized identity need to be distinguishable rejection reasons.
 
 
@@ -490,9 +574,13 @@ If the GCKS authorizes an IKE identity but accepts an unrelated MLS credential i
 # IANA Considerations
 
 This document names several new protocol codepoints but does not assign final values.
-If standardized, the draft is expected to request new IKEv2 Exchange Type values for `GIKE_MLS_AUTH`, `GIKE_MLS_REGISTRATION`, `GIKE_MLS_PROPOSAL`, `GIKE_MLS_COMMIT`, and `GIKE_MLS_WELCOME`.
-It is expected to request new IKEv2 Payload Type values for `MLS_KEY_PACKAGE`, `MLS_GROUP_INFO`, `MLS_PARTIAL_GROUP_INFO`, `MLS_GROUP_TEMPLATE`, `MLS_PROPOSAL`, `MLS_COMMIT`, `MLS_WELCOME`, and `MLS_RATCHET_TREE`.
-It is expected to request new IKEv2 Notify Message Type values for `MLS_VERSION`, `MLS_COMMIT_ACCEPTED`, and `MLS_COMMIT_REJECTED`.
+If standardized, the draft is expected to request new IKEv2 Exchange Type values for `GSA_MLS_REQUEST_COMMIT` and `GIKE_MLS_UPLOAD`.
+The existing `GSA_AUTH`, `GSA_REGISTRATION`, and `GSA_INBAND_REKEY` exchange types are otherwise reused.
+It is not expected to request new IKEv2 Payload Type values for MLS objects.
+MLS objects are carried in the existing KD and Notify payloads.
+It is expected to request a new `MLS_OBJECT` Group Key Bag Attribute and a new `MLS_OBJECT` Member Key Bag Attribute.
+It is expected to request a new IKEv2 Notify Message Status Type value for `MLS_OBJECT`.
+It is expected to request a new IKEv2 Notify Message Error Type value for `MLS_COMMIT_REJECTED`.
 It is also expected to register the MLS exporter label used for ESP key derivation.
 
 # Open Questions
@@ -512,15 +600,8 @@ The policy specified above uses the lowest non-blank eligible leaf because it is
 The rejection code structure for `MLS_COMMIT_REJECTED` needs to be specified.
 This could be a single Notify with a subcode or separate Notify types.
 
-The draft needs to decide whether to keep using KD Member Key Bags for `GM_SENDER_ID` or define a narrower Sender-ID payload.
-The current design reuses KD only for `GM_SENDER_ID`.
-
 The final MLS exporter label needs review.
 This document uses `MLS-GIKE ESP key` as a descriptive placeholder.
 The final string should be checked against MLS Exporter Labels registry guidance and IPsec/IKE naming practice.
-
-The draft needs to decide whether the MLS Commit fan-out exchange should allocate a new exchange type or reuse `GSA_INBAND_REKEY` with a new payload set.
-The current design uses a new exchange type for clarity.
-
 
 --- back
