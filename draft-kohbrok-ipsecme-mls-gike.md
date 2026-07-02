@@ -302,8 +302,7 @@ The GCKS then distributes the `mls_commit` to existing members.
 After registration, a Candidate GM has an IKE SA to the GCKS and has received the initial non-installable GSA policy, but it is not yet an MLS member.
 The GCKS drives the join by sending an external Add Proposal to a designated committer.
 
-~~~ 
-aasvg
+~~~ aasvg
 Candidate        GCKS         Designated GM (committer)              Existing GMs
     |             |                  |                                     |
     | GSA_AUTH {N(MLS_OBJECT: mls_key_package)}                            |
