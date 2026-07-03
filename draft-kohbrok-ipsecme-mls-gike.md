@@ -366,8 +366,6 @@ The removed GM does not receive any new Data-Security SA keying material.
 If multicast `GSA_REKEY` is used, the removed GM can receive the fresh GSA policy and MLS control material, but cannot derive the new MLS epoch secret or the new ESP key.
 In unicast fan-out mode, if the removed GM's IKE SA is still available, the GCKS sends the `mls_proposal` and `mls_commit` objects without the fresh GSA to the removed GM so it has an authenticated indication that it has been removed.
 The removed GM can verify the Remove proposal and Commit structure but cannot derive the new epoch.
-If that delivery is not possible, the GCKS needs another authenticated indication, such as an IKE Delete or Notify, before it accepts further group traffic from that GM.
-!!! Needs rewording - GCKS is not a member of the group and cannot accept group traffic. !!!
 The GCKS then tears down the IKE SA to the removed GM if appropriate.
 
 There is no separate KEK-then-TEK rekey step.
