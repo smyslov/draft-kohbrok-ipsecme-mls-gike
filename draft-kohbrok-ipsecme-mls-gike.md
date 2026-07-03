@@ -641,8 +641,7 @@ The GCKS rejects member-authored Commits that carry Add, Remove, Update, PreShar
 This preserves the rule that only the GCKS proposes structural or policy changes.
 
 A designated committer can deny service by refusing to commit a GCKS-authored Proposal.
-The mitigation specified here is for the GCKS to retry with another non-blank leaf.
-More advanced committer selection and reputation policies are not specified in this document.
+The mitigation specified here is for the GCKS to retry with another appropriate GM on its choice.
 
 The IKE identity and MLS credential need an explicit binding.
 If the GCKS authorizes an IKE identity but accepts an unrelated MLS credential in the KeyPackage, authorization is split across layers in a way this draft does not intend.
