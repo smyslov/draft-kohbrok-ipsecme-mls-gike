@@ -70,7 +70,7 @@ Applications can then derive key material from the MLS exporter defined in Secti
 
 This document proposes using MLS to replace the TEK machinery inherited by G-IKEv2 from GDOI-style group key distribution.
 G-IKEv2 remains the authenticated unicast transport between each GM and the GCKS for the registration
-to the group and optionally for unicast delivery of MLS structures. The GCKS can also optionally provide delivery 
+to the group and optionally for unicast delivery of MLS structures. The GCKS can also optionally provide delivery
 of MLS data structures using multicast Rekey SA, in which case the maintenance of this SA, including key management, retains.
 The GSA payload remains the source of IPsec policy, traffic selectors, transforms, Sender-ID parameters, activation delay, and deactivation delay.
 The ESP data plane and the SPD/SAD model remain the IPsec data plane described by {{RFC4301}} and {{RFC4303}}.
